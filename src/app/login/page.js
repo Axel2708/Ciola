@@ -11,8 +11,8 @@ export default function LoginPage() {
           <Image
             src="/logociola.jpeg"
             alt="Logo"
-            width={800}
-            height={800}
+            width={400}
+            height={400}
             style={{ objectFit: "contain" }}
             priority
           />
@@ -36,15 +36,15 @@ const styles = {
     alignItems: "center",
     backgroundColor: "#f5f2ed",
   },
- card: {
-  display: "flex",
-  width: "1500px",   // más ancha
-  height: "700px",   // más alta
-  backgroundColor: "white",
-  borderRadius: "20px",
-  overflow: "hidden",
-  boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
-},
+  card: {
+    display: "flex",
+    width: "1100px",
+    height: "600px",
+    backgroundColor: "white",
+    borderRadius: "20px",
+    overflow: "hidden",
+    boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+  },
   imageSection: {
     flex: 1,
     display: "flex",

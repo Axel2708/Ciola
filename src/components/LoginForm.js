@@ -1,10 +1,18 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 export default function LoginForm() {
+  const router = useRouter()
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    router.push("/home")
+  }
+
   return (
-    <form style={styles.form}>
+    <form onSubmit={handleSubmit} style={styles.form}>
       <h2 style={styles.title}>Bienvenido</h2>
-  
 
       <input
         type="email"
@@ -18,20 +26,7 @@ export default function LoginForm() {
         style={styles.input}
       />
 
-      <button
-        type="submit"
-        style={styles.button}
-        onMouseEnter={(e) => {
-          e.target.style.backgroundColor = "#a68b6f"
-          e.target.style.transform = "translateY(-3px)"
-          e.target.style.boxShadow = "0 8px 20px rgba(0,0,0,0.15)"
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.backgroundColor = "#b89c80"
-          e.target.style.transform = "translateY(0)"
-          e.target.style.boxShadow = "none"
-        }}
-      >
+      <button type="submit" style={styles.button}>
         Iniciar sesión
       </button>
     </form>
@@ -48,7 +43,7 @@ const styles = {
   },
   title: {
     marginBottom: "10px",
-    fontSize: "40px",
+    fontSize: "28px",
     color: "#333",
   },
   input: {
