@@ -1,84 +1,133 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar
+} from "recharts"
 
 export default function HomePage() {
-  const router = useRouter()
 
-  const handleLogout = () => {
-    router.push("/login")
-  }
+  const [ordenes] = useState([
+    { id: 1, total: 200, status: "Entregado" },
+    { id: 2, total: 150, status: "Pendiente" },
+    { id: 3, total: 300, status: "Entregado" },
+    { id: 4, total: 100, status: "Cancelado" },
+    { id: 5, total: 250, status: "Entregado" },
+    { id: 6, total: 180, status: "Entregado" },
+  ])
+
+  const stats = useMemo(() => {
+
+    const totalOrdenes = ordenes.length
+
+    const ventas = ordenes
+      .filter(o => o.status === "Entregado")
+      .reduce((acc, curr) => acc + curr.total, 0)
+
+    const low = ordenes.filter(o => o.total < 150).length
+
+    const porcentaje =
+      totalOrdenes > 0
+        ? Math.round((ventas / 1500) * 100)
+        : 0
+
+    return { totalOrdenes, ventas, low, porcentaje }
+
+  }, [ordenes])
+
+  // 📈 Datos para línea (ventas por día)
+  const dataLinea = ordenes.map((o, i) => ({
+    name: `Día ${i + 1}`,
+    ventas: o.total
+  }))
+
+  // 📊 Datos para barras
+  const dataBarras = ordenes.map((o, i) => ({
+    name: `#${o.id}`,
+    total: o.total
+  }))
 
   return (
-    <div style={styles.container}>
-      
-      {/* Sidebar */}
-      <div style={styles.sidebar}>
-        <div>
-          <h2 style={styles.logo}>Dashboard</h2>
+    <div style={styles.main}>
 
-          <div style={styles.menu}>
-            <div style={styles.activeItem}>Dashboard</div>
-            <div style={styles.menuItem}>Cliente</div>
-            <div style={styles.menuItem}>Productos</div>
-            <div style={styles.menuItem}>Órdenes</div>
-            <div style={styles.menuItem}>Reportes</div>
-            <div style={styles.menuItem}>Administrar personal</div>
-          </div>
+      {/* Topbar */}
+      <div style={styles.topbar}>
+        <h1>Dashboard</h1>
+        <div style={styles.searchContainer}>
+          <input placeholder="Buscar" style={styles.search} />
+          <div style={styles.avatar}></div>
         </div>
-
-        <button onClick={handleLogout} style={styles.logout}>
-          Salir
-        </button>
       </div>
 
-      {/* Main Content */}
-      <div style={styles.main}>
-        
-        {/* Top bar */}
-        <div style={styles.topbar}>
-          <h1 style={{ margin: 0 }}>Dashboard</h1>
+      {/* Stats */}
+      <div style={styles.statsRow}>
+        <div style={styles.card}>
+          <h4>Órdenes totales</h4>
+          <h2>{stats.totalOrdenes}</h2>
+        </div>
 
-          <div style={styles.searchContainer}>
-            <input placeholder="Buscar" style={styles.search} />
-            <div style={styles.avatar}></div>
+        <div style={styles.card}>
+          <h4>Ventas</h4>
+          <h2>${stats.ventas}</h2>
+        </div>
+
+        <div style={styles.card}>
+          <h4>Low</h4>
+          <h2>{stats.low}</h2>
+        </div>
+      </div>
+
+      {/* Grid principal */}
+      <div style={styles.grid}>
+
+        {/* Producto top */}
+        <div style={styles.smallCard}>
+          <h3>Producto Top</h3>
+          <p style={styles.productName}>Pastel</p>
+        </div>
+
+        {/* 📈 Ventas generales - Línea */}
+        <div style={styles.largeCard}>
+          <h3>Ventas generales</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={dataLinea}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="ventas"
+                stroke="#c98f8f"
+                strokeWidth={3}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Porcentaje */}
+        <div style={styles.smallCard}>
+          <h3>Ventas generales</h3>
+          <div style={styles.circle}>
+            {stats.porcentaje}%
           </div>
         </div>
 
-        {/* Stats */}
-        <div style={styles.cardsRow}>
-          <div style={styles.card}>
-            <h3>Órdenes totales</h3>
-            <h2>200</h2>
-          </div>
-
-          <div style={styles.card}>
-            <h3>Ventas</h3>
-            <h2>$40</h2>
-          </div>
-
-          <div style={styles.card}>
-            <h3>Low</h3>
-            <h2>5</h2>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div style={styles.contentRow}>
-          <div style={styles.largeCard}>
-            <h3>Ventas generales</h3>
-            <div style={styles.fakeChart}></div>
-          </div>
-
-          <div style={styles.largeCard}>
-            <h3>Resumen de pedidos</h3>
-            <div style={styles.bars}>
-              <div style={styles.bar}></div>
-              <div style={styles.bar}></div>
-              <div style={styles.bar}></div>
-              <div style={styles.bar}></div>
-            </div>
-          </div>
+        {/* 📊 Resumen de pedidos - Barras */}
+        <div style={styles.largeCard}>
+          <h3>Resumen de pedidos</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={dataBarras}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar
+                dataKey="total"
+                fill="#5f8368"
+                radius={[6, 6, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
       </div>
@@ -87,76 +136,25 @@ export default function HomePage() {
 }
 
 const styles = {
-  container: {
-    display: "flex",
-    height: "100vh",
-    backgroundColor: "#f3f1ed",
-    fontFamily: "sans-serif",
-  },
-
-  sidebar: {
-    width: "250px",
-    backgroundColor: "#5f8368",
-    color: "white",
-    padding: "30px 20px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-
-  logo: {
-    marginBottom: "40px",
-  },
-
-  menu: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-
-  activeItem: {
-    backgroundColor: "#b89c80",
-    padding: "10px",
-    borderRadius: "8px",
-  },
-
-  menuItem: {
-    opacity: 0.9,
-    cursor: "pointer",
-  },
-
-  logout: {
-    padding: "12px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    color: "white",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-  },
-
-  main: {
-    flex: 1,
-    padding: "40px",
-  },
+  main: { padding: "40px", backgroundColor: "#f3f1ed" },
 
   topbar: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "30px",
   },
 
   searchContainer: {
     display: "flex",
-    alignItems: "center",
     gap: "20px",
+    alignItems: "center",
   },
 
   search: {
     padding: "10px",
     borderRadius: "20px",
     border: "1px solid #ddd",
+    backgroundColor: "#d9cbb6",
   },
 
   avatar: {
@@ -166,7 +164,7 @@ const styles = {
     borderRadius: "50%",
   },
 
-  cardsRow: {
+  statsRow: {
     display: "flex",
     gap: "20px",
     marginBottom: "30px",
@@ -177,41 +175,44 @@ const styles = {
     backgroundColor: "#d9cbb6",
     padding: "20px",
     borderRadius: "15px",
-    boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
+    boxShadow: "0 5px 10px rgba(0,0,0,0.1)",
   },
 
-  contentRow: {
-    display: "flex",
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 2fr",
     gap: "20px",
   },
 
-  largeCard: {
-    flex: 1,
+  smallCard: {
     backgroundColor: "#d9cbb6",
     padding: "20px",
     borderRadius: "15px",
-    boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
   },
 
-  fakeChart: {
-    height: "150px",
-    backgroundColor: "#c9b8a0",
-    borderRadius: "10px",
-    marginTop: "20px",
+  largeCard: {
+    backgroundColor: "#d9cbb6",
+    padding: "20px",
+    borderRadius: "15px",
   },
 
-  bars: {
-    display: "flex",
-    alignItems: "flex-end",
-    gap: "10px",
-    marginTop: "20px",
-    height: "150px",
-  },
-
-  bar: {
-    width: "30px",
-    height: "80px",
+  circle: {
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
     backgroundColor: "#5f8368",
-    borderRadius: "5px",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "26px",
+    fontWeight: "bold",
+    marginTop: "20px",
+  },
+
+  productName: {
+    fontSize: "24px",
+    color: "#e76f51",
+    marginTop: "10px",
   },
 }

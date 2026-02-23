@@ -11,8 +11,8 @@ export default function LoginPage() {
           <Image
             src="/logociola.jpeg"
             alt="Logo"
-            width={400}
-            height={400}
+            width={800}
+            height={800}
             style={{ objectFit: "contain" }}
             priority
           />
@@ -38,8 +38,8 @@ const styles = {
   },
   card: {
     display: "flex",
-    width: "1100px",
-    height: "600px",
+    width: "1500px",
+    height: "700px",
     backgroundColor: "white",
     borderRadius: "20px",
     overflow: "hidden",
