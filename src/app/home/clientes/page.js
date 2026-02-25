@@ -32,6 +32,23 @@ export default function ClientesPage() {
     setLoading(false)
   }
 
+  async function handleDelete(id) {
+    const confirmDelete = confirm("¿Seguro que quieres eliminar este cliente?")
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      console.log("Error eliminando cliente:", error)
+      alert("No se pudo eliminar")
+    } else {
+      fetchClientes()
+    }
+  }
+
   const filteredClientes = clientes.filter((cliente) =>
     cliente.nombre.toLowerCase().includes(search.toLowerCase())
   )
@@ -39,13 +56,11 @@ export default function ClientesPage() {
   return (
     <div style={styles.container}>
       
-      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>Clientes</h1>
         <div style={styles.avatar}></div>
       </div>
 
-      {/* Actions */}
       <div style={styles.actions}>
         <input
           placeholder="Buscar cliente"
@@ -62,7 +77,6 @@ export default function ClientesPage() {
         </button>
       </div>
 
-      {/* Tabla */}
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
@@ -99,6 +113,18 @@ export default function ClientesPage() {
                     >
                       Edit
                     </button>
+
+                    <button
+                      style={{
+                        ...styles.editButton,
+                        backgroundColor: "#e57373",
+                        marginLeft: "8px"
+                      }}
+                      onClick={() => handleDelete(cliente.id)}
+                    >
+                      Eliminar
+                    </button>
+
                   </td>
                 </tr>
               ))

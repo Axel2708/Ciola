@@ -1,85 +1,126 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabaseClient"
 
-export default function AgregarCliente() {
+export default function AgregarClientePage() {
 
   const router = useRouter()
 
+  const [nombre, setNombre] = useState("")
+  const [email, setEmail] = useState("")
+  const [telefono, setTelefono] = useState("")
+  const [direccion, setDireccion] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+
+    if (!nombre || !email) {
+      alert("Nombre y email son obligatorios")
+      return
+    }
+
+    setLoading(true)
+
+    const { error } = await supabase
+      .from("clientes")
+      .insert([
+        {
+          nombre,
+          email,
+          telefono,
+          direccion,
+        },
+      ])
+
+    setLoading(false)
+
+    if (error) {
+      console.log(error)
+      alert("Error al guardar cliente")
+    } else {
+      router.push("/home/clientes")
+    }
+  }
+
   return (
-    <div>
-      <h1 style={styles.title}>Agregar clientes</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>Agregar cliente</h1>
 
-      <div style={styles.card}>
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          style={styles.input}
+        />
 
-        <input placeholder="Nombre" style={styles.input} />
-        <input placeholder="Email" style={styles.input} />
-        <input placeholder="Teléfono" style={styles.input} />
-        <textarea placeholder="Dirección" style={styles.textarea} />
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={styles.input}
+        />
 
-        <div style={styles.buttons}>
-          <button
-            style={styles.cancel}
-            onClick={() => router.push("/home/clientes")}
-          >
-            Cancelar
-          </button>
+        <input
+          type="text"
+          placeholder="Teléfono"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+          style={styles.input}
+        />
 
-          <button style={styles.add}>
-            Añadir
-          </button>
-        </div>
+        <textarea
+          placeholder="Dirección"
+          value={direccion}
+          onChange={(e) => setDireccion(e.target.value)}
+          style={styles.textarea}
+        />
 
-      </div>
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? "Guardando..." : "Guardar cliente"}
+        </button>
+      </form>
     </div>
   )
 }
 
 const styles = {
-  title: { fontSize: "28px", marginBottom: "20px" },
-
-  card: {
-    background: "#d9cbb6",
-    padding: "30px",
-    borderRadius: "50px",
-    maxWidth: "1000px",
-    minHeight: "500px"
+  container: {
+    padding: "40px",
+    backgroundColor: "#f3f1ed",
+    minHeight: "100vh",
   },
-
-  input: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    borderRadius: "8px",
-    border: "none",
+  title: {
+    marginBottom: "25px",
   },
-
-  textarea: {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "8px",
-    border: "none",
-    minHeight: "100px",
-    marginBottom: "20px",
-  },
-
-  buttons: {
+  form: {
     display: "flex",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    gap: "15px",
+    maxWidth: "400px",
   },
-
-  cancel: {
-    padding: "10px 20px",
-    background: "#eee",
-    border: "none",
+  input: {
+    padding: "12px",
     borderRadius: "8px",
+    border: "1px solid #ccc",
   },
-
-  add: {
-    padding: "10px 20px",
-    background: "#b89c80",
-    border: "none",
+  textarea: {
+    padding: "12px",
     borderRadius: "8px",
-    color: "white",
+    border: "1px solid #ccc",
+    minHeight: "100px",
+  },
+  button: {
+    padding: "12px",
+    borderRadius: "8px",
+    border: "none",
+    backgroundColor: "#d9cbb6",
+    fontWeight: "bold",
+    cursor: "pointer",
   },
 }
