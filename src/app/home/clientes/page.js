@@ -1,18 +1,40 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function ClientesPage() {
 
   const router = useRouter()
+  const [clientes, setClientes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
 
-  const clientes = [
-    { id: 1, nombre: "Miranda", email: "miri@gmail.com", telefono: "748484", direccion: "my heart" },
-    { id: 2, nombre: "Axel", email: "alonso@gmail.com", telefono: "9932187993", direccion: "her heart" },
-    { id: 3, nombre: "Lupita", email: "lup@gmail.com", telefono: "99323565313", direccion: "house" },
-    { id: 4, nombre: "Jose", email: "barahona2002@homtail.com", telefono: "9933113255", direccion: "work" },
-    { id: 5, nombre: "Kamy", email: "k@gmail.com", telefono: "idk", direccion: "----" },
-  ]
+  useEffect(() => {
+    fetchClientes()
+  }, [])
+
+  async function fetchClientes() {
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.log("Error cargando clientes:", error)
+    } else {
+      setClientes(data)
+    }
+
+    setLoading(false)
+  }
+
+  const filteredClientes = clientes.filter((cliente) =>
+    cliente.nombre.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div style={styles.container}>
@@ -28,6 +50,8 @@ export default function ClientesPage() {
         <input
           placeholder="Buscar cliente"
           style={styles.search}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
 
         <button
@@ -51,22 +75,34 @@ export default function ClientesPage() {
             </tr>
           </thead>
           <tbody>
-            {clientes.map((cliente) => (
-              <tr key={cliente.id} style={styles.tr}>
-                <td style={styles.td}>{cliente.nombre}</td>
-                <td style={styles.td}>{cliente.email}</td>
-                <td style={styles.td}>{cliente.telefono}</td>
-                <td style={styles.td}>{cliente.direccion}</td>
-                <td style={styles.td}>
-                  <button
-                    style={styles.editButton}
-                    onClick={() => router.push(`/home/clientes/editar/${cliente.id}`)}
-                  >
-                    Edit
-                  </button>
-                </td>
+            {loading ? (
+              <tr>
+                <td style={styles.td}>Cargando...</td>
               </tr>
-            ))}
+            ) : filteredClientes.length === 0 ? (
+              <tr>
+                <td style={styles.td}>No hay clientes</td>
+              </tr>
+            ) : (
+              filteredClientes.map((cliente) => (
+                <tr key={cliente.id} style={styles.tr}>
+                  <td style={styles.td}>{cliente.nombre}</td>
+                  <td style={styles.td}>{cliente.email}</td>
+                  <td style={styles.td}>{cliente.telefono}</td>
+                  <td style={styles.td}>{cliente.direccion}</td>
+                  <td style={styles.td}>
+                    <button
+                      style={styles.editButton}
+                      onClick={() =>
+                        router.push(`/home/clientes/editar/${cliente.id}`)
+                      }
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -78,6 +114,8 @@ export default function ClientesPage() {
 const styles = {
   container: {
     backgroundColor: "#f3f1ed",
+    padding: "30px",
+    minHeight: "100vh",
   },
 
   header: {

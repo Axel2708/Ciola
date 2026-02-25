@@ -34,7 +34,7 @@ export default function HomeLayout({ children }) {
             />
           </div>
 
-          <h2 style={styles.logo}>Dashboard</h2>
+          <h2 style={styles.logo}>Menú</h2>
 
           <div style={styles.menu}>
             {menuItems.map((item) => {
