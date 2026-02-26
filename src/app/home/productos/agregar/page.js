@@ -1,97 +1,205 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function AgregarProducto() {
 
   const router = useRouter()
+  const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({
     nombre: "",
-    categoria: "",
+    categoria_id: "",
     precio: "",
     stock: ""
   })
 
+  const [categorias, setCategorias] = useState([])
+  const [imagen, setImagen] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [guardando, setGuardando] = useState(false)
+
+  useEffect(() => {
+    fetchCategorias()
+  }, [])
+
+  async function fetchCategorias() {
+    const { data } = await supabase
+      .from("categorias")
+      .select("*")
+
+    setCategorias(data || [])
+  }
+
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    })
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImagen(file)
+      setPreviewUrl(URL.createObjectURL(file))
+    }
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+
+    if (!form.nombre || !form.precio || !form.stock || !form.categoria_id) {
+      alert("Completa todos los campos")
+      return
+    }
+
+    setGuardando(true)
+
+    let imageUrl = null
+
+    if (imagen) {
+      const fileExt = imagen.name.split(".").pop()
+      const fileName = `producto_${Date.now()}.${fileExt}`
+
+      const { error } = await supabase.storage
+        .from("productos")
+        .upload(fileName, imagen)
+
+      if (!error) {
+        const { data } = supabase
+          .storage
+          .from("productos")
+          .getPublicUrl(fileName)
+
+        imageUrl = data.publicUrl
+      }
+    }
+
+    const { error } = await supabase
+      .from("productos")
+      .insert([
+        {
+          nombre: form.nombre,
+          categoria_id: form.categoria_id,
+          precio: Number(form.precio),
+          stock: Number(form.stock),
+          imagen_url: imageUrl
+        }
+      ])
+
+    if (error) {
+      console.log("Error insertando:", error)
+      setGuardando(false)
+      return
+    }
+
+    setGuardando(false)
+    router.push("/home/productos")
   }
 
   return (
     <div style={styles.container}>
 
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Añadir producto</h1>
-        <div style={styles.avatar}></div>
-      </div>
+      <h1 style={styles.title}>Añadir producto</h1>
 
-      {/* Card */}
-      <div style={styles.card}>
+      <form style={styles.card} onSubmit={handleSave}>
 
         {/* Imagen */}
-        <div style={styles.imageBox}>
-          <div style={styles.imageIcon}>🖼</div>
-          <p style={{ marginTop: "10px", color: "#7a6f63" }}>Imagen</p>
+        <div style={styles.imageSection}>
+          <div style={styles.imageWrapper}>
+
+            {previewUrl ? (
+              <Image
+                src={previewUrl}
+                alt="preview"
+                fill
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <div style={styles.imagePlaceholder}>🖼</div>
+            )}
+
+          </div>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: "none" }}
+          />
+
+          <button
+            type="button"
+            style={styles.imageButton}
+            onClick={() => fileInputRef.current.click()}
+          >
+            Seleccionar imagen
+          </button>
         </div>
 
         {/* Formulario */}
-        <div style={styles.form}>
+        <div style={styles.formSection}>
 
           <div style={styles.field}>
             <label style={styles.label}>Nombre</label>
             <input
               name="nombre"
-              style={styles.input}
+              value={form.nombre}
               onChange={handleChange}
+              style={styles.input}
             />
           </div>
 
           <div style={styles.field}>
             <label style={styles.label}>Categoría</label>
             <select
-              name="categoria"
-              style={styles.input}
+              name="categoria_id"
+              value={form.categoria_id}
               onChange={handleChange}
+              style={styles.select}
             >
-              <option value="">Seleccionar</option>
-              <option>Pastel</option>
-              <option>Pan</option>
-              <option>Bebida</option>
+              <option value="">Seleccionar categoría</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Precio</label>
-            <input
-              name="precio"
-              style={styles.input}
-              onChange={handleChange}
-            />
-          </div>
+          <div style={styles.row}>
+            <div style={styles.field}>
+              <label style={styles.label}>Precio</label>
+              <input
+                type="number"
+                name="precio"
+                value={form.precio}
+                onChange={handleChange}
+                style={styles.input}
+              />
+            </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Stock</label>
-            <input
-              name="stock"
-              style={styles.input}
-              onChange={handleChange}
-            />
+            <div style={styles.field}>
+              <label style={styles.label}>Stock</label>
+              <input
+                type="number"
+                name="stock"
+                value={form.stock}
+                onChange={handleChange}
+                style={styles.input}
+              />
+            </div>
           </div>
 
           <div style={styles.buttons}>
-            <button
-              style={styles.saveButton}
-              onClick={() => router.push("/home/productos")}
-            >
-              Guardar
+            <button type="submit" style={styles.saveButton}>
+              {guardando ? "Guardando..." : "Guardar producto"}
             </button>
 
             <button
+              type="button"
               style={styles.cancelButton}
               onClick={() => router.push("/home/productos")}
             >
@@ -101,108 +209,107 @@ export default function AgregarProducto() {
 
         </div>
 
-      </div>
-
+      </form>
     </div>
   )
 }
 
 const styles = {
   container: {
-    padding: "30px",
+    padding: "40px",
     backgroundColor: "#f3f1ed",
+    minHeight: "100vh",
   },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "30px",
-  },
-
   title: {
-    fontSize: "28px",
+    fontSize: "32px",
+    marginBottom: "30px",
     color: "#3b2f2f",
-    margin: 0,
   },
-
-  avatar: {
-    width: "45px",
-    height: "45px",
-    borderRadius: "50%",
-    backgroundColor: "#b89c80",
-  },
-
   card: {
     display: "flex",
-    gap: "50px",
+    gap: "60px",
     backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "20px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
+    padding: "50px",
+    borderRadius: "25px",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
   },
-
-  imageBox: {
-    width: "220px",
-    height: "220px",
-    border: "2px dashed #e6c6bd",
-    borderRadius: "15px",
+  imageSection: {
     display: "flex",
     flexDirection: "column",
+    alignItems: "center",
+    gap: "15px",
+  },
+  imageWrapper: {
+    position: "relative",
+    width: "250px",
+    height: "250px",
+    borderRadius: "20px",
+    overflow: "hidden",
+    backgroundColor: "#f0ede9",
+  },
+  imagePlaceholder: {
+    fontSize: "60px",
+    display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f5f2",
+    height: "100%",
   },
-
-  imageIcon: {
-    fontSize: "40px",
-    color: "#d8a7a0",
+  imageButton: {
+    padding: "10px 20px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: "#5f8368",
+    color: "white",
+    cursor: "pointer",
   },
-
-  form: {
+  formSection: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
+    gap: "25px",
   },
-
   field: {
     display: "flex",
     flexDirection: "column",
   },
-
   label: {
-    marginBottom: "5px",
+    marginBottom: "8px",
     fontSize: "14px",
     color: "#5f5f5f",
   },
-
   input: {
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "14px",
+    borderRadius: "12px",
     border: "1px solid #e2d8cc",
     backgroundColor: "#f7f3ef",
-    outline: "none",
   },
-
+  select: {
+    padding: "14px",
+    borderRadius: "12px",
+    border: "1px solid #e2d8cc",
+    backgroundColor: "#f7f3ef",
+  },
+  row: {
+    display: "flex",
+    gap: "20px",
+  },
   buttons: {
     display: "flex",
-    gap: "15px",
-    marginTop: "20px",
+    gap: "20px",
+    marginTop: "10px",
   },
-
   saveButton: {
-    padding: "10px 25px",
-    borderRadius: "8px",
+    padding: "12px 30px",
+    borderRadius: "12px",
     border: "none",
     backgroundColor: "#a5a078",
     color: "white",
+    fontWeight: "600",
     cursor: "pointer",
   },
-
   cancelButton: {
-    padding: "10px 25px",
-    borderRadius: "8px",
+    padding: "12px 30px",
+    borderRadius: "12px",
     border: "1px solid #d1c7bb",
     backgroundColor: "#f7f3ef",
     cursor: "pointer",

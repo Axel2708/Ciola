@@ -1,13 +1,40 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function LoginForm() {
+
   const router = useRouter()
 
-  const handleSubmit = (e) => {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    router.push("/home")
+
+    if (!email || !password) {
+      alert("Completa todos los campos")
+      return
+    }
+
+    setLoading(true)
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    setLoading(false)
+
+    if (error) {
+      console.log(error)
+      alert("Correo o contraseña incorrectos")
+    } else {
+      router.push("/home")
+    }
   }
 
   return (
@@ -18,16 +45,20 @@ export default function LoginForm() {
         type="email"
         placeholder="Correo electrónico"
         style={styles.input}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
         type="password"
         placeholder="Contraseña"
         style={styles.input}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button type="submit" style={styles.button}>
-        Iniciar sesión
+      <button type="submit" style={styles.button} disabled={loading}>
+        {loading ? "Ingresando..." : "Iniciar sesión"}
       </button>
     </form>
   )

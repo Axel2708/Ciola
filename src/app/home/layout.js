@@ -1,25 +1,122 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import Image from "next/image"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function HomeLayout({ children }) {
-  const pathname = usePathname()
 
-  const menuItems = [
-    { name: "Dashboard", path: "/home" },
-    { name: "Clientes", path: "/home/clientes" },
-    { name: "Productos", path: "/home/productos" },
-    { name: "Órdenes", path: "/home/ordenes" },
-    { name: "Reportes", path: "/home/reportes" },
-    { name: "Personal", path: "/home/personal" },
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const [loading, setLoading] = useState(true)
+  const [rol, setRol] = useState(null)
+
+  useEffect(() => {
+    checkUser()
+  }, [pathname])
+
+  function tienePermiso(ruta, rol) {
+    const permisos = {
+      Admin: [
+        "/home",
+        "/home/clientes",
+        "/home/productos",
+        "/home/ordenes",
+        "/home/reportes",
+        "/home/personal"
+      ],
+      Vendedor: [
+        "/home",
+        "/home/clientes",
+        "/home/ordenes"
+      ],
+      Marketing: [
+        "/home",
+        "/home/clientes",
+        "/home/reportes"
+      ],
+    }
+
+    return permisos[rol]?.some(baseRuta =>
+      ruta.startsWith(baseRuta)
+    )
+  }
+
+  async function checkUser() {
+
+    setLoading(true)
+
+    const { data: authData } = await supabase.auth.getUser()
+
+    if (!authData.user) {
+      router.replace("/login")
+      return
+    }
+
+    const { data: perfil, error } = await supabase
+      .from("perfiles")
+      .select(`
+        id,
+        rol:rol (
+          nombre
+        )
+      `)
+      .eq("id", authData.user.id)
+      .single()
+
+    if (error || !perfil) {
+      router.replace("/login")
+      return
+    }
+
+    const rolUsuario = perfil.rol?.nombre
+
+    if (!rolUsuario) {
+      router.replace("/login")
+      return
+    }
+
+    if (!tienePermiso(pathname, rolUsuario)) {
+      router.replace("/home")
+      return
+    }
+
+    setRol(rolUsuario)
+    setLoading(false)
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.replace("/login")
+  }
+
+  const allMenuItems = [
+    { name: "Dashboard", path: "/home", roles: ["Admin", "Vendedor", "Marketing"] },
+    { name: "Clientes", path: "/home/clientes", roles: ["Admin", "Vendedor", "Marketing"] },
+    { name: "Productos", path: "/home/productos", roles: ["Admin"] },
+    { name: "Órdenes", path: "/home/ordenes", roles: ["Admin", "Vendedor"] },
+    { name: "Reportes", path: "/home/reportes", roles: ["Admin", "Marketing"] },
+    { name: "Personal", path: "/home/personal", roles: ["Admin"] },
   ]
+
+  const menuItems = allMenuItems.filter(item =>
+    rol && item.roles.includes(rol)
+  )
+
+  if (loading) {
+    return (
+      <div style={{ padding: "40px", fontSize: "18px" }}>
+        Cargando permisos...
+      </div>
+    )
+  }
 
   return (
     <div style={styles.container}>
 
-      {/* Sidebar */}
       <div style={styles.sidebar}>
 
         <div>
@@ -38,7 +135,12 @@ export default function HomeLayout({ children }) {
 
           <div style={styles.menu}>
             {menuItems.map((item) => {
-              const isActive = pathname === item.path
+
+              // 🔥 CORRECCIÓN IMPORTANTE AQUÍ
+              const isActive =
+                item.path === "/home"
+                  ? pathname === "/home"
+                  : pathname.startsWith(item.path)
 
               return (
                 <Link
@@ -57,13 +159,12 @@ export default function HomeLayout({ children }) {
           </div>
         </div>
 
-        <Link href="/login" style={styles.logout}>
+        <button onClick={handleLogout} style={styles.logout}>
           Salir
-        </Link>
+        </button>
 
       </div>
 
-      {/* Main */}
       <div style={styles.main}>
         <div style={styles.dashboardContainer}>
           {children}
@@ -141,10 +242,11 @@ const styles = {
   logout: {
     padding: "12px",
     borderRadius: "8px",
+    border: "none",
     backgroundColor: "#b89c80",
     color: "white",
     textAlign: "center",
-    textDecoration: "none",
+    cursor: "pointer",
   },
 
   main: {
