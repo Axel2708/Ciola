@@ -106,13 +106,45 @@ export default function HomeLayout({ children }) {
     rol && item.roles.includes(rol)
   )
 
+  /* =========================
+     LOADING PREMIUM
+  ========================== */
+
   if (loading) {
     return (
-      <div className="p-10 text-lg">
-        Cargando permisos...
+      <div className="flex items-center justify-center min-h-screen bg-[#f3f1ed]">
+
+        <div className="flex flex-col items-center gap-6">
+
+          <Image
+            src="/cv.png"
+            alt="Logo"
+            width={120}
+            height={120}
+            className="object-contain"
+            priority
+          />
+
+          <div className="w-12 h-12 border-4 border-[#b89c80]
+                          border-t-transparent rounded-full animate-spin" />
+
+          <p className="text-lg font-medium text-black tracking-wide">
+            Verificando permisos...
+          </p>
+
+          <p className="text-sm text-gray-500">
+            Preparando tu panel administrativo
+          </p>
+
+        </div>
+
       </div>
     )
   }
+
+  /* =========================
+     LAYOUT NORMAL
+  ========================== */
 
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-[#f3f1ed]">
