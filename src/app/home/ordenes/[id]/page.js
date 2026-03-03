@@ -1,21 +1,51 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
+import { useState } from "react"
 
 export default function DetallePedidoPage() {
 
   const { id } = useParams()
+  const router = useRouter()
 
-  // Simulación de pedido cargado por ID
-  const pedido = {
+  const [pedido, setPedido] = useState({
     id: id,
     cliente: "AXEL",
     fecha: "04/04/2025",
-    status: "Activo",
+    status: "Pendiente",
     payment: "Online",
     productos: [
-      { nombre: "Pastel chocolate", cantidad: 1, total: 4.3 },
+      {
+        nombre: "Pastel chocolate",
+        cantidad: 1,
+        total: 4.3,
+      },
+      {
+        nombre: "Pastel personalizado",
+        cantidad: 1,
+        total: 50,
+        personalizado: true,
+        descripcion: "Pastel de cumpleaños con flores",
+        sabor: "Chocolate",
+        tamaño: "2 pisos",
+        imagen_url: "/ejemplo.jpg"
+      }
     ]
+  })
+
+  const estados = ["Pendiente", "En preparación", "Listo", "Entregado"]
+
+  const cambiarEstado = () => {
+    if (pedido.status === "Cancelado") return
+    const index = estados.indexOf(pedido.status)
+    if (index < estados.length - 1) {
+      setPedido({ ...pedido, status: estados[index + 1] })
+    }
+  }
+
+  const cancelarPedido = () => {
+    if (pedido.status === "Cancelado") return
+    setPedido({ ...pedido, status: "Cancelado" })
   }
 
   const totalGeneral = pedido.productos.reduce(
@@ -23,181 +53,171 @@ export default function DetallePedidoPage() {
     0
   )
 
-  return (
-    <div style={styles.container}>
+  const getStatusColor = (estado) => {
+    if (estado === "Pendiente") return "bg-yellow-200 text-yellow-800"
+    if (estado === "En preparación") return "bg-blue-200 text-blue-800"
+    if (estado === "Listo") return "bg-green-200 text-green-800"
+    if (estado === "Entregado") return "bg-emerald-300 text-emerald-900"
+    if (estado === "Cancelado") return "bg-red-200 text-red-800"
+  }
 
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Detalles del pedido</h1>
-        <div style={styles.avatar}></div>
+  return (
+    <div className="w-full space-y-8">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 rounded-lg border border-gray-300 
+                       text-black hover:bg-gray-100 transition"
+          >
+            ← Regresar
+          </button>
+
+          <h1 className="text-3xl font-semibold text-black">
+            Detalles del pedido
+          </h1>
+        </div>
+
       </div>
 
-      <div style={styles.card}>
+      {/* CARD */}
+      <div className="bg-white p-8 rounded-2xl shadow-md space-y-8">
 
-        {/* Info principal */}
-        <div style={styles.infoGrid}>
+        {/* INFO */}
+        <div className="grid grid-cols-2 gap-6">
 
           <div>
-            <p style={styles.label}>Orden Id</p>
-            <h3>#{pedido.id}</h3>
+            <p className="text-sm text-gray-500">Orden ID</p>
+            <h3 className="text-lg font-semibold text-black">
+              #{pedido.id}
+            </h3>
           </div>
 
           <div>
-            <p style={styles.label}>Status</p>
-            <span style={styles.status}>Activo</span>
+            <p className="text-sm text-gray-500">Status</p>
+            <span className={`px-4 py-1 rounded-full text-sm font-semibold ${getStatusColor(pedido.status)}`}>
+              {pedido.status}
+            </span>
           </div>
 
           <div>
-            <p style={styles.label}>Cliente</p>
-            <h3>{pedido.cliente}</h3>
+            <p className="text-sm text-gray-500">Cliente</p>
+            <h3 className="text-lg font-semibold text-black">
+              {pedido.cliente}
+            </h3>
           </div>
 
           <div>
-            <p style={styles.label}>Fecha</p>
-            <h3>{pedido.fecha}</h3>
+            <p className="text-sm text-gray-500">Fecha</p>
+            <h3 className="text-lg font-semibold text-black">
+              {pedido.fecha}
+            </h3>
           </div>
 
           <div>
-            <p style={styles.label}>Payment Method</p>
-            <h3>{pedido.payment}</h3>
+            <p className="text-sm text-gray-500">Método de pago</p>
+            <h3 className="text-lg font-semibold text-black">
+              {pedido.payment}
+            </h3>
           </div>
 
         </div>
 
-        <hr style={styles.divider} />
+        {/* TIMELINE */}
+        {pedido.status !== "Cancelado" && (
+          <>
+            <div className="flex justify-between items-center pt-6 border-t">
+              {estados.map((estado, index) => {
 
-        {/* Tabla productos */}
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Productos</th>
-              <th style={styles.th}>Cantidad</th>
-              <th style={styles.th}>Total</th>
-            </tr>
-          </thead>
+                const activo = estados.indexOf(pedido.status) >= index
 
-          <tbody>
-            {pedido.productos.map((item, index) => (
-              <tr key={index}>
-                <td style={styles.td}>{item.nombre}</td>
-                <td style={styles.td}>{item.cantidad}</td>
-                <td style={styles.td}>${item.total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                return (
+                  <div key={estado} className="flex-1 text-center">
+                    <div className={`w-8 h-8 mx-auto rounded-full 
+                      ${activo ? "bg-[#b89c80]" : "bg-gray-300"}`} />
+                    <p className="text-sm mt-2 text-black">
+                      {estado}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
 
-        <hr style={styles.divider} />
+            <button
+              onClick={cambiarEstado}
+              className="px-6 py-2 bg-gray-200 rounded-lg text-black hover:bg-gray-300 transition"
+            >
+              Avanzar estado
+            </button>
+          </>
+        )}
 
-        {/* Total */}
-        <div style={styles.totalRow}>
-          <h2>Total</h2>
-          <h2>${totalGeneral}</h2>
-        </div>
-
-        <div style={styles.buttonContainer}>
-          <button style={styles.pdfButton}>
-            Descargar PDF
+        {/* CANCELAR */}
+        <div className="flex justify-end">
+          <button
+            onClick={cancelarPedido}
+            disabled={pedido.status === "Cancelado"}
+            className={`px-6 py-2 rounded-xl font-semibold transition
+              ${
+                pedido.status === "Cancelado"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-red-500 text-white hover:bg-red-600"
+              }`}
+          >
+            {pedido.status === "Cancelado"
+              ? "Pedido cancelado"
+              : "Cancelar pedido"}
           </button>
         </div>
 
-      </div>
+        {/* PRODUCTOS */}
+        <div className="space-y-6 pt-6 border-t">
 
+          {pedido.productos.map((item, index) => (
+            <div key={index} className="bg-[#f7f3ef] p-4 rounded-xl space-y-3">
+
+              <div className="flex justify-between">
+                <h3 className="font-semibold text-black">
+                  {item.nombre}
+                </h3>
+                <span className="font-semibold text-black">
+                  ${item.total}
+                </span>
+              </div>
+
+              {item.personalizado && (
+                <div className="space-y-2 text-sm text-gray-700">
+
+                  <p><strong>Descripción:</strong> {item.descripcion}</p>
+                  <p><strong>Sabor:</strong> {item.sabor}</p>
+                  <p><strong>Tamaño:</strong> {item.tamaño}</p>
+
+                  {item.imagen_url && (
+                    <img
+                      src={item.imagen_url}
+                      alt="Pastel personalizado"
+                      className="w-48 rounded-lg"
+                    />
+                  )}
+
+                </div>
+              )}
+
+            </div>
+          ))}
+
+        </div>
+
+        {/* TOTAL */}
+        <div className="flex justify-between text-xl font-bold text-black border-t pt-4">
+          <span>Total</span>
+          <span>${totalGeneral}</span>
+        </div>
+
+      </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "30px",
-    backgroundColor: "#f3f1ed",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "25px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "28px",
-    color: "#3b2f2f",
-  },
-
-  avatar: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    backgroundColor: "#b89c80",
-  },
-
-  card: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "15px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-  },
-
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "20px",
-  },
-
-  label: {
-    margin: 0,
-    fontSize: "14px",
-    color: "#888",
-  },
-
-  status: {
-    backgroundColor: "#cfe8d5",
-    color: "#2f6b3f",
-    padding: "5px 15px",
-    borderRadius: "20px",
-    fontWeight: "bold",
-    fontSize: "12px",
-  },
-
-  divider: {
-    margin: "20px 0",
-    border: "none",
-    borderTop: "1px solid #eee",
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-
-  th: {
-    textAlign: "left",
-    paddingBottom: "10px",
-  },
-
-  td: {
-    padding: "10px 0",
-  },
-
-  totalRow: {
-    display: "flex",
-    justifyContent: "space-between",
-  },
-
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "20px",
-  },
-
-  pdfButton: {
-    padding: "12px 20px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
 }

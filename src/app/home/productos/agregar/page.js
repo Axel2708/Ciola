@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { supabase } from "@/lib/supabaseClient"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function AgregarProducto() {
 
@@ -17,10 +18,12 @@ export default function AgregarProducto() {
     stock: ""
   })
 
+  const [errores, setErrores] = useState({})
   const [categorias, setCategorias] = useState([])
   const [imagen, setImagen] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [guardando, setGuardando] = useState(false)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     fetchCategorias()
@@ -30,29 +33,41 @@ export default function AgregarProducto() {
     const { data } = await supabase
       .from("categorias")
       .select("*")
-
     setCategorias(data || [])
+  }
+
+  const validar = () => {
+    const nuevosErrores = {}
+
+    if (!form.nombre) nuevosErrores.nombre = "El nombre es obligatorio"
+    if (!form.categoria_id) nuevosErrores.categoria_id = "Selecciona una categoría"
+    if (!form.precio) nuevosErrores.precio = "Ingresa un precio"
+    if (!form.stock) nuevosErrores.stock = "Ingresa el stock"
+
+    setErrores(nuevosErrores)
+    return Object.keys(nuevosErrores).length === 0
   }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
+  const handleImage = (file) => {
     if (file) {
       setImagen(file)
       setPreviewUrl(URL.createObjectURL(file))
     }
   }
 
+  const handleDrop = (e) => {
+    e.preventDefault()
+    handleImage(e.dataTransfer.files[0])
+  }
+
   async function handleSave(e) {
     e.preventDefault()
 
-    if (!form.nombre || !form.precio || !form.stock || !form.categoria_id) {
-      alert("Completa todos los campos")
-      return
-    }
+    if (!validar()) return
 
     setGuardando(true)
 
@@ -62,103 +77,145 @@ export default function AgregarProducto() {
       const fileExt = imagen.name.split(".").pop()
       const fileName = `producto_${Date.now()}.${fileExt}`
 
-      const { error } = await supabase.storage
+      await supabase.storage
         .from("productos")
         .upload(fileName, imagen)
 
-      if (!error) {
-        const { data } = supabase
-          .storage
-          .from("productos")
-          .getPublicUrl(fileName)
+      const { data } = supabase
+        .storage
+        .from("productos")
+        .getPublicUrl(fileName)
 
-        imageUrl = data.publicUrl
-      }
+      imageUrl = data.publicUrl
     }
 
-    const { error } = await supabase
+    await supabase
       .from("productos")
-      .insert([
-        {
-          nombre: form.nombre,
-          categoria_id: form.categoria_id,
-          precio: Number(form.precio),
-          stock: Number(form.stock),
-          imagen_url: imageUrl
-        }
-      ])
-
-    if (error) {
-      console.log("Error insertando:", error)
-      setGuardando(false)
-      return
-    }
+      .insert([{
+        nombre: form.nombre,
+        categoria_id: form.categoria_id,
+        precio: Number(form.precio),
+        stock: Number(form.stock),
+        imagen_url: imageUrl
+      }])
 
     setGuardando(false)
-    router.push("/home/productos")
+    setToast("Producto guardado correctamente")
+
+    setTimeout(() => {
+      router.push("/home/productos")
+    }, 1200)
   }
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-10">
 
-      <h1 style={styles.title}>Añadir producto</h1>
+      <h1 className="text-3xl font-semibold text-black">
+        Añadir producto
+      </h1>
 
-      <form style={styles.card} onSubmit={handleSave}>
+      <form
+        onSubmit={handleSave}
+        className="flex gap-16 bg-white p-12 rounded-3xl shadow-xl"
+      >
 
-        {/* Imagen */}
-        <div style={styles.imageSection}>
-          <div style={styles.imageWrapper}>
+        {/* DRAG & DROP IMAGEN */}
+        <div className="flex flex-col items-center gap-5">
 
-            {previewUrl ? (
-              <Image
-                src={previewUrl}
-                alt="preview"
-                fill
-                style={{ objectFit: "cover" }}
-              />
-            ) : (
-              <div style={styles.imagePlaceholder}>🖼</div>
-            )}
-
-          </div>
+          <motion.div
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="relative w-[260px] h-[260px]
+                       rounded-2xl border-2 border-dashed border-gray-300
+                       bg-[#f7f3ef] flex items-center justify-center
+                       cursor-pointer hover:border-[#b89c80] transition"
+            onClick={() => fileInputRef.current.click()}
+          >
+            <AnimatePresence>
+              {previewUrl ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={previewUrl}
+                    alt="preview"
+                    fill
+                    className="object-cover rounded-2xl"
+                  />
+                </motion.div>
+              ) : (
+                <div className="text-6xl text-gray-400">
+                  🖼
+                </div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           <input
             type="file"
             ref={fileInputRef}
             accept="image/*"
-            onChange={handleImageChange}
-            style={{ display: "none" }}
+            onChange={(e) => handleImage(e.target.files[0])}
+            className="hidden"
           />
 
-          <button
-            type="button"
-            style={styles.imageButton}
-            onClick={() => fileInputRef.current.click()}
-          >
-            Seleccionar imagen
-          </button>
+          <p className="text-sm text-gray-600">
+            Arrastra o haz clic para subir imagen
+          </p>
+
         </div>
 
-        {/* Formulario */}
-        <div style={styles.formSection}>
+        {/* FORM */}
+        <div className="flex-1 flex flex-col gap-6">
 
-          <div style={styles.field}>
-            <label style={styles.label}>Nombre</label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              style={styles.input}
-            />
-          </div>
+          {/* INPUTS */}
+          {[
+            { name: "nombre", label: "Nombre" },
+            { name: "precio", label: "Precio", type: "number" },
+            { name: "stock", label: "Stock", type: "number" }
+          ].map((campo) => (
+            <div key={campo.name} className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-black">
+                {campo.label}
+              </label>
+              <input
+                type={campo.type || "text"}
+                name={campo.name}
+                value={form[campo.name]}
+                onChange={handleChange}
+                className={`px-4 py-3 rounded-xl border
+                  ${errores[campo.name]
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-300 bg-white"}
+                  text-black focus:outline-none
+                  focus:ring-2 focus:ring-[#b89c80] transition`}
+              />
+              {errores[campo.name] && (
+                <span className="text-red-500 text-sm">
+                  {errores[campo.name]}
+                </span>
+              )}
+            </div>
+          ))}
 
-          <div style={styles.field}>
-            <label style={styles.label}>Categoría</label>
+          {/* SELECT */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-black">
+              Categoría
+            </label>
             <select
               name="categoria_id"
               value={form.categoria_id}
               onChange={handleChange}
-              style={styles.select}
+              className={`px-4 py-3 rounded-xl border
+                ${errores.categoria_id
+                  ? "border-red-400 bg-red-50"
+                  : "border-gray-300 bg-white"}
+                text-black focus:outline-none
+                focus:ring-2 focus:ring-[#b89c80] transition`}
             >
               <option value="">Seleccionar categoría</option>
               {categorias.map(cat => (
@@ -167,151 +224,59 @@ export default function AgregarProducto() {
                 </option>
               ))}
             </select>
+            {errores.categoria_id && (
+              <span className="text-red-500 text-sm">
+                {errores.categoria_id}
+              </span>
+            )}
           </div>
 
-          <div style={styles.row}>
-            <div style={styles.field}>
-              <label style={styles.label}>Precio</label>
-              <input
-                type="number"
-                name="precio"
-                value={form.precio}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
+          {/* BOTONES */}
+          <div className="flex gap-5 pt-4">
 
-            <div style={styles.field}>
-              <label style={styles.label}>Stock</label>
-              <input
-                type="number"
-                name="stock"
-                value={form.stock}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
-          </div>
-
-          <div style={styles.buttons}>
-            <button type="submit" style={styles.saveButton}>
+            <button
+              type="submit"
+              disabled={guardando}
+              className="px-8 py-3 rounded-xl bg-[#b89c80] text-white font-semibold
+                         hover:bg-[#a38366] transition flex items-center gap-2"
+            >
+              {guardando && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
               {guardando ? "Guardando..." : "Guardar producto"}
             </button>
 
             <button
               type="button"
-              style={styles.cancelButton}
               onClick={() => router.push("/home/productos")}
+              className="px-8 py-3 rounded-xl border border-gray-300
+                         bg-white text-black hover:bg-gray-100 transition"
             >
               Cancelar
             </button>
+
           </div>
 
         </div>
 
       </form>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="fixed bottom-6 right-6
+                       bg-[#b89c80] text-white
+                       px-6 py-3 rounded-xl shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "40px",
-    backgroundColor: "#f3f1ed",
-    minHeight: "100vh",
-  },
-  title: {
-    fontSize: "32px",
-    marginBottom: "30px",
-    color: "#3b2f2f",
-  },
-  card: {
-    display: "flex",
-    gap: "60px",
-    backgroundColor: "white",
-    padding: "50px",
-    borderRadius: "25px",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-  },
-  imageSection: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "15px",
-  },
-  imageWrapper: {
-    position: "relative",
-    width: "250px",
-    height: "250px",
-    borderRadius: "20px",
-    overflow: "hidden",
-    backgroundColor: "#f0ede9",
-  },
-  imagePlaceholder: {
-    fontSize: "60px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100%",
-  },
-  imageButton: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#5f8368",
-    color: "white",
-    cursor: "pointer",
-  },
-  formSection: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "25px",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    marginBottom: "8px",
-    fontSize: "14px",
-    color: "#5f5f5f",
-  },
-  input: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#f7f3ef",
-  },
-  select: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#f7f3ef",
-  },
-  row: {
-    display: "flex",
-    gap: "20px",
-  },
-  buttons: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "10px",
-  },
-  saveButton: {
-    padding: "12px 30px",
-    borderRadius: "12px",
-    border: "none",
-    backgroundColor: "#a5a078",
-    color: "white",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  cancelButton: {
-    padding: "12px 30px",
-    borderRadius: "12px",
-    border: "1px solid #d1c7bb",
-    backgroundColor: "#f7f3ef",
-    cursor: "pointer",
-  },
 }

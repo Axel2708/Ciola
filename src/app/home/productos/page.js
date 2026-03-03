@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { supabase } from "@/lib/supabaseClient"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function ProductosPage() {
 
@@ -12,19 +13,20 @@ export default function ProductosPage() {
   const [productos, setProductos] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-
-  // 🔥 Filtros nuevos
   const [categoriaFiltro, setCategoriaFiltro] = useState("")
   const [soloStockBajo, setSoloStockBajo] = useState(false)
-  const [mostrarFiltros, setMostrarFiltos] = useState(false)
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+  const [productoAEliminar, setProductoAEliminar] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     fetchProductos()
   }, [])
 
   async function fetchProductos() {
+    setLoading(true)
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("productos")
       .select(`
         id,
@@ -38,29 +40,23 @@ export default function ProductosPage() {
       `)
       .order("created_at", { ascending: false })
 
-    if (!error) {
-      setProductos(data || [])
-    }
-
+    setProductos(data || [])
     setLoading(false)
   }
 
-  async function eliminarProducto(id) {
-
-    const confirmar = confirm("¿Seguro que deseas eliminar este producto?")
-    if (!confirmar) return
-
-    const { error } = await supabase
+  async function confirmarEliminar() {
+    await supabase
       .from("productos")
       .delete()
-      .eq("id", id)
+      .eq("id", productoAEliminar)
 
-    if (!error) {
-      fetchProductos()
-    }
+    setProductoAEliminar(null)
+    setToast("Producto eliminado correctamente")
+    fetchProductos()
+
+    setTimeout(() => setToast(null), 3000)
   }
 
-  // 🔥 FILTRADO INTELIGENTE
   const productosFiltrados = productos.filter(producto => {
 
     const coincideBusqueda =
@@ -77,256 +73,249 @@ export default function ProductosPage() {
   })
 
   return (
-    <div style={styles.container}>
-      
-      <div style={styles.header}>
-        <h1 style={styles.title}>Productos</h1>
-        <div style={styles.avatar}></div>
-      </div>
+    <div className="w-full space-y-8">
 
-      <div style={styles.actions}>
-        <div style={styles.leftActions}>
-          <input
-            placeholder="Buscar producto"
-            style={styles.search}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <button
-            style={styles.filterButton}
-            onClick={() => setMostrarFiltos(prev => !prev)}
-          >
-            Filtro
-          </button>
-        </div>
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-semibold text-gray-900">
+          Productos
+        </h1>
 
         <button
-          style={styles.addButton}
           onClick={() => router.push("/home/productos/agregar")}
+          className="px-6 py-3 rounded-xl bg-[#b89c80] text-white
+                     hover:bg-[#a38366] transition"
         >
           Añadir producto
         </button>
       </div>
 
-      {/* 🔥 PANEL FILTROS */}
-      {mostrarFiltros && (
-        <div style={styles.filtroPanel}>
-          
-          <select
-            value={categoriaFiltro}
-            onChange={(e) => setCategoriaFiltro(e.target.value)}
-            style={styles.search}
-          >
-            <option value="">Todas las categorías</option>
-            {[...new Set(productos.map(p => p.categorias?.nombre))]
-              .filter(Boolean)
-              .map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))
-            }
-          </select>
+      {/* BUSCADOR + FILTRO */}
+      <div className="flex justify-between items-center">
 
-          <label style={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={soloStockBajo}
-              onChange={() => setSoloStockBajo(!soloStockBajo)}
-            />
-            Solo stock bajo (≤5)
-          </label>
+        <div className="flex gap-4 items-center">
+
+          <input
+            placeholder="Buscar producto"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-[320px] px-4 py-3 rounded-xl
+                       bg-white text-black
+                       border border-gray-300
+                       shadow-sm
+                       placeholder:text-gray-500
+                       focus:outline-none focus:ring-2 focus:ring-[#b89c80]
+                       transition duration-300"
+          />
+
+          <button
+            onClick={() => setMostrarFiltros(prev => !prev)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl
+                        font-medium shadow-sm transition duration-300
+                        ${mostrarFiltros
+                          ? "bg-[#b89c80] text-white"
+                          : "bg-[#d6c6b2] text-gray-900 hover:bg-[#c8b79f]"}
+                        `}
+          >
+            🎛 Filtros
+          </button>
 
         </div>
-      )}
 
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
+      </div>
+
+      {/* PANEL FILTROS */}
+      <AnimatePresence>
+        {mostrarFiltros && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-4 p-6 rounded-2xl
+                       bg-[#ece3d6]
+                       border border-[#d6c6b2]
+                       shadow-md flex flex-wrap gap-6 items-center"
+          >
+
+            <select
+              value={categoriaFiltro}
+              onChange={(e) => setCategoriaFiltro(e.target.value)}
+              className="px-4 py-3 rounded-xl
+                         bg-white text-gray-800
+                         border border-gray-300
+                         focus:outline-none focus:ring-2 focus:ring-[#b89c80]
+                         shadow-sm transition"
+            >
+              <option value="">Todas las categorías</option>
+              {[...new Set(productos.map(p => p.categorias?.nombre))]
+                .filter(Boolean)
+                .map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+            </select>
+
+            <label className="flex items-center gap-3 text-gray-800 font-medium">
+              <input
+                type="checkbox"
+                checked={soloStockBajo}
+                onChange={() => setSoloStockBajo(!soloStockBajo)}
+                className="w-4 h-4 accent-[#b89c80]"
+              />
+              Solo stock bajo (≤5)
+            </label>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TABLA */}
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden relative">
+
+        {loading && (
+          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-[#b89c80] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+
+        <table className="w-full text-left">
+
+          <thead className="bg-[#d6c6b2] text-gray-900">
             <tr>
-              <th style={styles.th}>Imagen</th>
-              <th style={styles.th}>Nombre</th>
-              <th style={styles.th}>Precio</th>
-              <th style={styles.th}>Stock</th>
-              <th style={styles.th}>Categoría</th>
-              <th style={styles.th}>Acción</th>
+              <th className="p-4">Imagen</th>
+              <th className="p-4">Nombre</th>
+              <th className="p-4">Precio</th>
+              <th className="p-4">Stock</th>
+              <th className="p-4">Categoría</th>
+              <th className="p-4">Acción</th>
             </tr>
           </thead>
 
-          <tbody>
-            {loading ? (
-              <tr>
-                <td style={styles.td}>Cargando...</td>
-              </tr>
-            ) : productosFiltrados.length === 0 ? (
-              <tr>
-                <td style={styles.td}>No hay productos</td>
-              </tr>
-            ) : (
-              productosFiltrados.map((producto) => (
-                <tr key={producto.id} style={styles.tr}>
-                  
-                  <td style={styles.td}>
-                    {producto.imagen_url ? (
-                      <Image
-                        src={producto.imagen_url}
-                        alt="producto"
-                        width={50}
-                        height={50}
-                        style={{ borderRadius: "8px", objectFit: "cover" }}
-                      />
-                    ) : "—"}
-                  </td>
+          <tbody className="divide-y text-gray-800">
 
-                  <td style={styles.td}>{producto.nombre}</td>
-                  <td style={styles.td}>${producto.precio}</td>
-                  <td style={styles.td}>{producto.stock}</td>
-                  <td style={styles.td}>
-                    {producto.categorias?.nombre || "Sin categoría"}
-                  </td>
+            {!loading && productosFiltrados.map(producto => (
+              <motion.tr
+                key={producto.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="hover:bg-gray-50 transition"
+              >
 
-                  <td style={styles.td}>
-                    <div style={styles.actionButtons}>
-                      <button
-                        style={styles.editButton}
-                        onClick={() =>
-                          router.push(`/home/productos/editar/${producto.id}`)
-                        }
-                      >
-                        Edit
-                      </button>
+                <td className="p-4">
+                  {producto.imagen_url ? (
+                    <Image
+                      src={producto.imagen_url}
+                      alt="producto"
+                      width={50}
+                      height={50}
+                      className="rounded-lg object-cover"
+                    />
+                  ) : "—"}
+                </td>
 
-                      <button
-                        style={styles.deleteButton}
-                        onClick={() => eliminarProducto(producto.id)}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
+                <td className="p-4 font-medium">
+                  {producto.nombre}
+                </td>
 
-                </tr>
-              ))
-            )}
+                <td className="p-4">
+                  ${producto.precio}
+                </td>
+
+                <td className={`p-4 font-semibold ${
+                  producto.stock <= 5
+                    ? "text-red-500"
+                    : "text-green-600"
+                }`}>
+                  {producto.stock}
+                </td>
+
+                <td className="p-4">
+                  {producto.categorias?.nombre || "Sin categoría"}
+                </td>
+
+                <td className="p-4 flex gap-2">
+
+                  <button
+                    onClick={() =>
+                      router.push(`/home/productos/editar/${producto.id}`)
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-[#f4b183]
+                               hover:bg-[#e3a36f] transition"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    onClick={() => setProductoAEliminar(producto.id)}
+                    className="px-3 py-1.5 rounded-lg bg-red-500 text-white
+                               hover:bg-red-600 transition"
+                  >
+                    Eliminar
+                  </button>
+
+                </td>
+
+              </motion.tr>
+            ))}
+
           </tbody>
         </table>
       </div>
+
+      {/* MODAL */}
+      <AnimatePresence>
+        {productoAEliminar && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white p-8 rounded-2xl shadow-xl w-[400px]"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
+              <h2 className="text-xl font-semibold mb-4">
+                Confirmar eliminación
+              </h2>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setProductoAEliminar(null)}
+                  className="px-4 py-2 border rounded-lg"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  onClick={confirmarEliminar}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="fixed bottom-6 right-6 bg-[#b89c80] text-white
+                       px-6 py-3 rounded-xl shadow-lg"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
-}
-
-const styles = {
-  container: {
-    backgroundColor: "#f3f1ed",
-    padding: "30px",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "30px",
-  },
-  title: {
-    margin: 0,
-    fontSize: "32px",
-    color: "#3b2f2f",
-    fontWeight: "600",
-  },
-  avatar: {
-    width: "45px",
-    height: "45px",
-    borderRadius: "50%",
-    backgroundColor: "#b89c80",
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "30px",
-  },
-  leftActions: {
-    display: "flex",
-    gap: "15px",
-  },
-  search: {
-    width: "320px",
-    padding: "12px 15px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#d9cbb6",
-    outline: "none",
-    fontSize: "14px",
-  },
-  filterButton: {
-    padding: "10px 18px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#d9cbb6",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  filtroPanel: {
-    display: "flex",
-    gap: "20px",
-    marginBottom: "20px",
-    alignItems: "center",
-  },
-  checkboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "14px",
-  },
-  addButton: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#e7dccb",
-    cursor: "pointer",
-    fontWeight: "600",
-  },
-  tableContainer: {
-    backgroundColor: "white",
-    borderRadius: "16px",
-    overflow: "hidden",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  th: {
-    textAlign: "left",
-    padding: "18px",
-    backgroundColor: "#f5f2ed",
-    fontWeight: "600",
-    fontSize: "14px",
-  },
-  tr: {
-    borderTop: "1px solid #f0f0f0",
-  },
-  td: {
-    padding: "18px",
-    fontSize: "14px",
-  },
-  actionButtons: {
-    display: "flex",
-    gap: "10px",
-  },
-  editButton: {
-    padding: "6px 14px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "#f4b183",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  deleteButton: {
-    padding: "6px 14px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "#e76f51",
-    color: "white",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
 }

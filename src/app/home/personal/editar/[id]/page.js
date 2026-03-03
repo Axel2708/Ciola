@@ -24,176 +24,134 @@ export default function EditarPersonalPage() {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-8">
 
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Editar personal</h1>
-        <div style={styles.avatar}></div>
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-semibold text-black">
+            Editar personal
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Modifica la información del miembro del equipo
+          </p>
+        </div>
+
+        <div className="w-10 h-10 rounded-full bg-[#b89c80]" />
       </div>
 
-      {/* Card */}
-      <div style={styles.card}>
+      {/* CARD */}
+      <div className="bg-white p-10 rounded-2xl shadow-lg max-w-4xl">
 
-        <div style={styles.formGrid}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <input
-            name="nombre"
-            value={form.nombre}
-            onChange={handleChange}
-            placeholder="Nombre"
-            style={{ ...styles.input, ...styles.inputTop }}
-          />
+          {/* Nombre */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Nombre
+            </label>
+            <input
+              name="nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            />
+          </div>
 
-          <input
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Email"
-            style={styles.input}
-          />
+          {/* Email */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Email
+            </label>
+            <input
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            />
+          </div>
 
-          <div style={styles.row}>
+          {/* Teléfono */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Teléfono
+            </label>
             <input
               name="telefono"
               value={form.telefono}
               onChange={handleChange}
-              placeholder="Teléfono"
-              style={styles.input}
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
             />
+          </div>
 
+          {/* Rol */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Rol
+            </label>
             <select
               name="rol"
               value={form.rol}
               onChange={handleChange}
-              style={styles.input}
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
             >
               <option>Admin</option>
               <option>Staff</option>
+              <option>Marketing</option>
             </select>
           </div>
 
+        </div>
+
+        {/* Dirección */}
+        <div className="flex flex-col mt-6">
+          <label className="text-sm text-gray-600 mb-2">
+            Dirección
+          </label>
           <textarea
             name="direccion"
             value={form.direccion}
             onChange={handleChange}
-            placeholder="Dirección"
-            style={styles.textarea}
+            className="px-4 py-3 rounded-xl border border-gray-300
+                       text-black min-h-[120px]
+                       focus:ring-2 focus:ring-[#b89c80]
+                       outline-none transition resize-none"
           />
-
         </div>
 
-        <div style={styles.buttons}>
+        {/* BOTONES */}
+        <div className="flex justify-end gap-4 mt-10">
+
           <button
-            style={styles.cancelButton}
             onClick={() => router.push("/home/personal")}
+            className="px-6 py-3 rounded-xl
+                       border border-gray-300
+                       text-black hover:bg-gray-100 transition"
           >
             Cancelar
           </button>
 
           <button
-            style={styles.saveButton}
             onClick={() => router.push("/home/personal")}
+            className="px-6 py-3 rounded-xl
+                       bg-[#b89c80] text-black font-semibold
+                       hover:bg-[#a38366] transition"
           >
-            Añadir
+            Guardar cambios
           </button>
+
         </div>
 
       </div>
+
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "30px",
-    backgroundColor: "#f3f1ed",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "25px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "28px",
-    color: "#3b2f2f",
-  },
-
-  avatar: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    backgroundColor: "#b89c80",
-  },
-
-  card: {
-    backgroundColor: "#d9cbb6",
-    padding: "40px",
-    borderRadius: "15px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-  },
-
-  formGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-
-  row: {
-    display: "flex",
-    gap: "20px",
-  },
-
-  input: {
-    flex: 1,
-    padding: "12px",
-    borderRadius: "8px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#f7f3ef",
-    outline: "none",
-  },
-
-  inputTop: {
-    backgroundColor: "#e8e0ef",
-  },
-
-  textarea: {
-    padding: "12px",
-    borderRadius: "8px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#e6cfc0",
-    minHeight: "100px",
-    resize: "none",
-    outline: "none",
-  },
-
-  buttons: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "30px",
-  },
-
-  cancelButton: {
-    padding: "12px 30px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#f7f3ef",
-    cursor: "pointer",
-    fontWeight: "bold",
-    color: "#8a5a00",
-  },
-
-  saveButton: {
-    padding: "12px 30px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#a5a078",
-    color: "white",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
 }

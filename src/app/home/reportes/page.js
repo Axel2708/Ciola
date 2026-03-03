@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell,
@@ -13,7 +13,6 @@ export default function ReportesPage() {
   const [fechaInicio, setFechaInicio] = useState("2025-04-04")
   const [fechaFin, setFechaFin] = useState("2025-05-04")
 
-  // Simulación dinámica de datos
   const generarDatos = () => {
     return [
       { name: "Lun", ventas: Math.floor(Math.random() * 500) },
@@ -25,7 +24,7 @@ export default function ReportesPage() {
     ]
   }
 
-  const dataBarras = generarDatos()
+  const dataBarras = useMemo(() => generarDatos(), [fechaInicio, fechaFin])
 
   const dataPie = [
     { name: "Pasteles", value: 400 },
@@ -37,45 +36,70 @@ export default function ReportesPage() {
   const COLORS = ["#f4b183", "#e76f51", "#6a4c93", "#2a9d8f"]
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-8">
 
-      <h1 style={styles.title}>Generar informe</h1>
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-semibold text-black">
+          Generar informe
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Analiza el rendimiento de ventas por rango de fechas
+        </p>
+      </div>
 
-      {/* Rango fechas */}
-      <div style={styles.dateContainer}>
-        <label>Rango de fechas</label>
-        <div style={styles.dateInputs}>
+      {/* FILTRO FECHAS */}
+      <div className="bg-white p-6 rounded-2xl shadow flex flex-wrap items-center gap-4">
+
+        <div className="flex flex-col">
+          <label className="text-sm text-gray-500 mb-1">
+            Fecha inicio
+          </label>
           <input
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-black"
           />
-          <span>To</span>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm text-gray-500 mb-1">
+            Fecha fin
+          </label>
           <input
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-black"
           />
         </div>
+
       </div>
 
-      {/* Gráficos */}
-      <div style={styles.grid}>
+      {/* GRÁFICOS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* Barras */}
-        <div style={styles.card}>
+        {/* BARRAS */}
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <h3 className="text-black font-semibold mb-4">
+            Ventas por día
+          </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={dataBarras}>
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" stroke="#000" />
+              <YAxis stroke="#000" />
               <Tooltip />
               <Bar dataKey="ventas" fill="#f4b183" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Pie */}
-        <div style={styles.card}>
+        {/* PIE */}
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <h3 className="text-black font-semibold mb-4">
+            Distribución de productos
+          </h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -94,90 +118,49 @@ export default function ReportesPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Línea */}
-        <div style={styles.cardWide}>
+        {/* LÍNEA */}
+        <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow">
+          <h3 className="text-black font-semibold mb-4">
+            Tendencia semanal
+          </h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={dataBarras}>
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" stroke="#000" />
+              <YAxis stroke="#000" />
               <Tooltip />
-              <Line type="monotone" dataKey="ventas" stroke="#b89c80" strokeWidth={3} />
+              <Line
+                type="monotone"
+                dataKey="ventas"
+                stroke="#b89c80"
+                strokeWidth={3}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
       </div>
 
-      {/* Botones */}
-      <div style={styles.buttons}>
-        <button style={styles.export}>Exportar PDF</button>
-        <button style={styles.cancel}>Cancelar</button>
+      {/* BOTONES */}
+      <div className="flex gap-4">
+
+        <button
+          className="px-6 py-3 rounded-xl
+                     bg-[#b89c80] text-black font-semibold
+                     hover:bg-[#a38366] transition"
+        >
+          Exportar PDF
+        </button>
+
+        <button
+          className="px-6 py-3 rounded-xl
+                     border border-gray-300 text-black
+                     hover:bg-gray-100 transition"
+        >
+          Cancelar
+        </button>
+
       </div>
 
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "20px",
-  },
-
-  title: {
-    fontSize: "28px",
-    marginBottom: "20px",
-  },
-
-  dateContainer: {
-    marginBottom: "20px",
-  },
-
-  dateInputs: {
-    display: "flex",
-    gap: "10px",
-    alignItems: "center",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "20px",
-  },
-
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    padding: "15px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-  },
-
-  cardWide: {
-    gridColumn: "span 2",
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    padding: "15px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-  },
-
-  buttons: {
-    marginTop: "20px",
-    display: "flex",
-    gap: "15px",
-  },
-
-  export: {
-    padding: "10px 20px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    cursor: "pointer",
-  },
-
-  cancel: {
-    padding: "10px 20px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    backgroundColor: "#ffffff",
-    cursor: "pointer",
-  },
 }

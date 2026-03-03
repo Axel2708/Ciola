@@ -108,35 +108,37 @@ export default function HomeLayout({ children }) {
 
   if (loading) {
     return (
-      <div style={{ padding: "40px", fontSize: "18px" }}>
+      <div className="p-10 text-lg">
         Cargando permisos...
       </div>
     )
   }
 
   return (
-    <div style={styles.container}>
+    <div className="flex min-h-screen w-full overflow-hidden bg-[#f3f1ed]">
 
-      <div style={styles.sidebar}>
+      {/* SIDEBAR */}
+      <aside className="w-[260px] bg-[#5f8368] text-white px-5 py-10 flex flex-col justify-between shrink-0">
 
         <div>
-          <div style={styles.imageContainer}>
+          <div className="flex justify-center mb-3">
             <Image
               src="/cv.png"
               alt="Sidebar"
               width={150}
               height={150}
-              style={{ objectFit: "contain" }}
+              className="object-contain"
               priority
             />
           </div>
 
-          <h2 style={styles.logo}>Menú</h2>
+          <h2 className="text-center text-xl font-bold mb-8">
+            Menú
+          </h2>
 
-          <div style={styles.menu}>
+          <nav className="flex flex-col gap-2">
             {menuItems.map((item) => {
 
-              // 🔥 CORRECCIÓN IMPORTANTE AQUÍ
               const isActive =
                 item.path === "/home"
                   ? pathname === "/home"
@@ -146,122 +148,35 @@ export default function HomeLayout({ children }) {
                 <Link
                   key={item.path}
                   href={item.path}
-                  style={{
-                    ...styles.menuItem,
-                    ...(isActive && styles.activeItem),
-                  }}
+                  className={`relative pl-6 pr-4 py-3 rounded-lg transition-all duration-300
+                    ${isActive ? "bg-[#b89c80]" : "hover:bg-[#4f705a]"}`}
                 >
-                  {isActive && <span style={styles.activeBar}></span>}
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[6px] h-[60%] bg-white rounded-r-md"></span>
+                  )}
                   {item.name}
                 </Link>
               )
             })}
-          </div>
+          </nav>
         </div>
 
-        <button onClick={handleLogout} style={styles.logout}>
+        <button
+          onClick={handleLogout}
+          className="py-3 rounded-lg bg-[#b89c80] hover:bg-[#a38366] transition duration-300"
+        >
           Salir
         </button>
 
-      </div>
+      </aside>
 
-      <div style={styles.main}>
-        <div style={styles.dashboardContainer}>
+      {/* MAIN */}
+      <main className="flex-1 p-10 flex">
+        <div className="bg-white rounded-[25px] p-10 w-full h-[calc(100vh-80px)] overflow-y-auto shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
           {children}
         </div>
-      </div>
+      </main>
 
     </div>
   )
-}
-
-const styles = {
-  container: {
-    display: "flex",
-    minHeight: "100vh",
-    width: "100%",
-    overflow: "hidden",
-    backgroundColor: "#f3f1ed",
-    fontFamily: "sans-serif",
-  },
-
-  sidebar: {
-    width: "260px",
-    backgroundColor: "#5f8368",
-    color: "white",
-    padding: "40px 20px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    flexShrink: 0,
-  },
-
-  imageContainer: {
-    display: "flex",
-    justifyContent: "center",
-    marginBottom: "10px",
-  },
-
-  logo: {
-    marginBottom: "30px",
-    fontSize: "22px",
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  menu: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-
-  menuItem: {
-    position: "relative",
-    padding: "12px 15px 12px 25px",
-    borderRadius: "8px",
-    textDecoration: "none",
-    color: "white",
-    transition: "all 0.3s ease",
-  },
-
-  activeItem: {
-    backgroundColor: "#b89c80",
-  },
-
-  activeBar: {
-    position: "absolute",
-    left: "0",
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: "6px",
-    height: "60%",
-    backgroundColor: "white",
-    borderRadius: "0 4px 4px 0",
-  },
-
-  logout: {
-    padding: "12px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    color: "white",
-    textAlign: "center",
-    cursor: "pointer",
-  },
-
-  main: {
-    flex: 1,
-    padding: "40px",
-    display: "flex",
-  },
-
-  dashboardContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: "25px",
-    padding: "40px",
-    width: "100%",
-    height: "calc(100vh - 80px)",
-    overflowY: "auto",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-  },
 }

@@ -36,69 +36,103 @@ export default function HomePage() {
 
   }, [ordenes])
 
-  // 📈 Datos para línea (ventas por día)
   const dataLinea = ordenes.map((o, i) => ({
     name: `Día ${i + 1}`,
     ventas: o.total
   }))
 
-  // 📊 Datos para barras
-  const dataBarras = ordenes.map((o, i) => ({
+  const dataBarras = ordenes.map((o) => ({
     name: `#${o.id}`,
     total: o.total
   }))
 
   return (
-    <div style={styles.main}>
+    <div className="w-full space-y-10">
 
-      {/* Topbar */}
-      <div style={styles.topbar}>
-        <h1>Dashboard</h1>
-        <div style={styles.searchContainer}>
-          <input placeholder="Buscar" style={styles.search} />
-          <div style={styles.avatar}></div>
+      {/* TOPBAR */}
+      <div className="flex justify-between items-center">
+
+        <h1 className="text-3xl font-semibold text-black">
+          Dashboard
+        </h1>
+
+        <div className="flex items-center gap-6">
+          <input
+            placeholder="Buscar..."
+            className="px-4 py-2 rounded-full border border-gray-300
+                       text-black focus:ring-2 focus:ring-[#b89c80]"
+          />
+          <div className="w-10 h-10 rounded-full bg-[#b89c80]" />
         </div>
+
       </div>
 
-      {/* Stats */}
-      <div style={styles.statsRow}>
-        <div style={styles.card}>
-          <h4>Órdenes totales</h4>
-          <h2>{stats.totalOrdenes}</h2>
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-500 text-sm">
+            Órdenes totales
+          </p>
+          <h2 className="text-3xl font-bold text-black mt-2">
+            {stats.totalOrdenes}
+          </h2>
         </div>
 
-        <div style={styles.card}>
-          <h4>Ventas</h4>
-          <h2>${stats.ventas}</h2>
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-500 text-sm">
+            Ventas entregadas
+          </p>
+          <h2 className="text-3xl font-bold text-black mt-2">
+            ${stats.ventas}
+          </h2>
         </div>
 
-        <div style={styles.card}>
-          <h4>Low</h4>
-          <h2>{stats.low}</h2>
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-500 text-sm">
+            Pedidos bajos
+          </p>
+          <h2 className="text-3xl font-bold text-black mt-2">
+            {stats.low}
+          </h2>
         </div>
+
       </div>
 
-      {/* Grid principal */}
-      <div style={styles.grid}>
+      {/* GRID PRINCIPAL */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Producto top */}
-        <div style={styles.smallCard}>
-          <h3>Producto Top</h3>
-          <p style={styles.productName}>Pastel</p>
+        {/* Producto Top */}
+        <div className="bg-white p-6 rounded-2xl shadow flex flex-col justify-between">
+          <div>
+            <p className="text-gray-500 text-sm">
+              Producto Top
+            </p>
+            <h3 className="text-2xl font-semibold text-black mt-2">
+              Pastel Chocolate
+            </h3>
+          </div>
+
+          <div className="mt-6 text-[#e76f51] font-bold text-lg">
+            🔥 Más vendido
+          </div>
         </div>
 
-        {/* 📈 Ventas generales - Línea */}
-        <div style={styles.largeCard}>
-          <h3>Ventas generales</h3>
-          <ResponsiveContainer width="100%" height={180}>
+        {/* Línea */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-500 text-sm mb-4">
+            Ventas generales
+          </p>
+
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={dataLinea}>
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" stroke="#000" />
+              <YAxis stroke="#000" />
               <Tooltip />
               <Line
                 type="monotone"
                 dataKey="ventas"
-                stroke="#c98f8f"
+                stroke="#b89c80"
                 strokeWidth={3}
               />
             </LineChart>
@@ -106,20 +140,29 @@ export default function HomePage() {
         </div>
 
         {/* Porcentaje */}
-        <div style={styles.smallCard}>
-          <h3>Ventas generales</h3>
-          <div style={styles.circle}>
+        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center justify-center">
+          <p className="text-gray-500 text-sm">
+            Meta alcanzada
+          </p>
+
+          <div className="w-32 h-32 rounded-full
+                          bg-[#5f8368] text-white
+                          flex items-center justify-center
+                          text-3xl font-bold mt-4">
             {stats.porcentaje}%
           </div>
         </div>
 
-        {/* 📊 Resumen de pedidos - Barras */}
-        <div style={styles.largeCard}>
-          <h3>Resumen de pedidos</h3>
-          <ResponsiveContainer width="100%" height={180}>
+        {/* Barras */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-500 text-sm mb-4">
+            Resumen de pedidos
+          </p>
+
+          <ResponsiveContainer width="100%" height={220}>
             <BarChart data={dataBarras}>
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" stroke="#000" />
+              <YAxis stroke="#000" />
               <Tooltip />
               <Bar
                 dataKey="total"
@@ -131,88 +174,7 @@ export default function HomePage() {
         </div>
 
       </div>
+
     </div>
   )
-}
-
-const styles = {
-  main: { padding: "40px", backgroundColor: "#f3f1ed" },
-
-  topbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "30px",
-  },
-
-  searchContainer: {
-    display: "flex",
-    gap: "20px",
-    alignItems: "center",
-  },
-
-  search: {
-    padding: "10px",
-    borderRadius: "20px",
-    border: "1px solid #ddd",
-    backgroundColor: "#d9cbb6",
-  },
-
-  avatar: {
-    width: "40px",
-    height: "40px",
-    backgroundColor: "#b89c80",
-    borderRadius: "50%",
-  },
-
-  statsRow: {
-    display: "flex",
-    gap: "20px",
-    marginBottom: "30px",
-  },
-
-  card: {
-    flex: 1,
-    backgroundColor: "#d9cbb6",
-    padding: "20px",
-    borderRadius: "15px",
-    boxShadow: "0 5px 10px rgba(0,0,0,0.1)",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 2fr",
-    gap: "20px",
-  },
-
-  smallCard: {
-    backgroundColor: "#d9cbb6",
-    padding: "20px",
-    borderRadius: "15px",
-  },
-
-  largeCard: {
-    backgroundColor: "#d9cbb6",
-    padding: "20px",
-    borderRadius: "15px",
-  },
-
-  circle: {
-    width: "120px",
-    height: "120px",
-    borderRadius: "50%",
-    backgroundColor: "#5f8368",
-    color: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "26px",
-    fontWeight: "bold",
-    marginTop: "20px",
-  },
-
-  productName: {
-    fontSize: "24px",
-    color: "#e76f51",
-    marginTop: "10px",
-  },
 }

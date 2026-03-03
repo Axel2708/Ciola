@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Image from "next/image"
 import { supabase } from "@/lib/supabaseClient"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function EditarProducto() {
 
@@ -19,11 +20,16 @@ export default function EditarProducto() {
     imagen_url: ""
   })
 
+  const [formOriginal, setFormOriginal] = useState(null)
   const [categorias, setCategorias] = useState([])
+  const [errores, setErrores] = useState({})
   const [nuevaImagen, setNuevaImagen] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [imagenAnterior, setImagenAnterior] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const [mostrarModalSalida, setMostrarModalSalida] = useState(false)
 
   useEffect(() => {
     fetchProducto()
@@ -32,9 +38,7 @@ export default function EditarProducto() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
   }, [previewUrl])
 
@@ -45,7 +49,12 @@ export default function EditarProducto() {
       .eq("id", id)
       .single()
 
-    if (data) setForm(data)
+    if (data) {
+      setForm(data)
+      setFormOriginal(data)
+      setImagenAnterior(data.imagen_url)
+    }
+
     setLoading(false)
   }
 
@@ -57,41 +66,71 @@ export default function EditarProducto() {
     setCategorias(data || [])
   }
 
+  const validar = () => {
+    const nuevosErrores = {}
+
+    if (!form.nombre) nuevosErrores.nombre = "El nombre es obligatorio"
+    if (!form.categoria_id) nuevosErrores.categoria_id = "Selecciona una categoría"
+    if (!form.precio) nuevosErrores.precio = "Ingresa el precio"
+    if (!form.stock) nuevosErrores.stock = "Ingresa el stock"
+
+    setErrores(nuevosErrores)
+    return Object.keys(nuevosErrores).length === 0
+  }
+
+  const hayCambios = () => {
+    return JSON.stringify(form) !== JSON.stringify(formOriginal) || nuevaImagen
+  }
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
+  const handleImage = (file) => {
     if (file) {
       setNuevaImagen(file)
-      const objectUrl = URL.createObjectURL(file)
-      setPreviewUrl(objectUrl)
+      setPreviewUrl(URL.createObjectURL(file))
     }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    handleImage(e.dataTransfer.files[0])
   }
 
   async function handleSave(e) {
     e.preventDefault()
+
+    if (!validar()) return
+
     setGuardando(true)
 
     let imageUrl = form.imagen_url
 
     if (nuevaImagen) {
+
+      // 🔥 eliminar imagen anterior
+      if (imagenAnterior) {
+        const nombreArchivoAnterior = imagenAnterior.split("/").pop()
+
+        await supabase.storage
+          .from("productos")
+          .remove([nombreArchivoAnterior])
+      }
+
       const fileExt = nuevaImagen.name.split(".").pop()
       const fileName = `${id}_${Date.now()}.${fileExt}`
 
-      const { error } = await supabase.storage
+      await supabase.storage
         .from("productos")
         .upload(fileName, nuevaImagen)
 
-      if (!error) {
-        const { data } = supabase
-          .storage
-          .from("productos")
-          .getPublicUrl(fileName)
+      const { data } = supabase
+        .storage
+        .from("productos")
+        .getPublicUrl(fileName)
 
-        imageUrl = data.publicUrl
-      }
+      imageUrl = data.publicUrl
     }
 
     await supabase
@@ -106,79 +145,128 @@ export default function EditarProducto() {
       .eq("id", id)
 
     setGuardando(false)
-    router.push("/home/productos")
+    setToast("Producto actualizado correctamente")
+
+    setTimeout(() => {
+      router.push("/home/productos")
+    }, 1200)
   }
 
-  if (loading) return <div style={{ padding: 40 }}>Cargando...</div>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[300px]">
+        <div className="w-8 h-8 border-4 border-[#b89c80] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-10">
 
-      <h1 style={styles.title}>Editar producto</h1>
+      <h1 className="text-3xl font-semibold text-black">
+        Editar producto
+      </h1>
 
-      <form style={styles.card} onSubmit={handleSave}>
+      <form
+        onSubmit={handleSave}
+        className="flex gap-16 bg-white p-12 rounded-3xl shadow-xl"
+      >
 
-        {/* Imagen */}
-        <div style={styles.imageSection}>
-          <div style={styles.imageWrapper}>
+        {/* IMAGEN */}
+        <div className="flex flex-col items-center gap-5">
 
-            {previewUrl ? (
-              <Image
-                src={previewUrl}
-                alt="preview"
-                fill
-                style={{ objectFit: "cover", transition: "0.3s ease" }}
-              />
-            ) : form.imagen_url ? (
-              <Image
-                src={form.imagen_url}
-                alt="producto"
-                fill
-                style={{ objectFit: "cover", transition: "0.3s ease" }}
-              />
-            ) : (
-              <div style={styles.imagePlaceholder}>🖼</div>
-            )}
-
-          </div>
+          <motion.div
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => fileInputRef.current.click()}
+            className="relative w-[260px] h-[260px]
+                       rounded-2xl border-2 border-dashed border-gray-300
+                       bg-[#f7f3ef] flex items-center justify-center
+                       cursor-pointer hover:border-[#b89c80] transition"
+          >
+            <AnimatePresence>
+              {previewUrl ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={previewUrl}
+                    alt="preview"
+                    fill
+                    className="object-cover rounded-2xl"
+                  />
+                </motion.div>
+              ) : form.imagen_url ? (
+                <Image
+                  src={form.imagen_url}
+                  alt="producto"
+                  fill
+                  className="object-cover rounded-2xl"
+                />
+              ) : (
+                <div className="text-6xl text-gray-400">🖼</div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           <input
             type="file"
             ref={fileInputRef}
             accept="image/*"
-            onChange={handleImageChange}
-            style={{ display: "none" }}
+            onChange={(e) => handleImage(e.target.files[0])}
+            className="hidden"
           />
 
-          <button
-            type="button"
-            style={styles.imageButton}
-            onClick={() => fileInputRef.current.click()}
-          >
-            Cambiar imagen
-          </button>
+          <p className="text-sm text-gray-600">
+            Arrastra o haz clic para cambiar imagen
+          </p>
+
         </div>
 
-        {/* Formulario */}
-        <div style={styles.formSection}>
+        {/* FORM */}
+        <div className="flex-1 flex flex-col gap-6">
 
-          <div style={styles.field}>
-            <label style={styles.label}>Nombre</label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              style={styles.input}
-            />
-          </div>
+          {["nombre", "precio", "stock"].map((campo) => (
+            <div key={campo} className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-black capitalize">
+                {campo}
+              </label>
+              <input
+                type={campo === "precio" || campo === "stock" ? "number" : "text"}
+                name={campo}
+                value={form[campo]}
+                onChange={handleChange}
+                className={`px-4 py-3 rounded-xl border
+                  ${errores[campo]
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-300 bg-white"}
+                  text-black focus:outline-none
+                  focus:ring-2 focus:ring-[#b89c80] transition`}
+              />
+              {errores[campo] && (
+                <span className="text-red-500 text-sm">
+                  {errores[campo]}
+                </span>
+              )}
+            </div>
+          ))}
 
-          <div style={styles.field}>
-            <label style={styles.label}>Categoría</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-black">
+              Categoría
+            </label>
             <select
               name="categoria_id"
               value={form.categoria_id || ""}
               onChange={handleChange}
-              style={styles.select}
+              className={`px-4 py-3 rounded-xl border
+                ${errores.categoria_id
+                  ? "border-red-400 bg-red-50"
+                  : "border-gray-300 bg-white"}
+                text-black focus:outline-none
+                focus:ring-2 focus:ring-[#b89c80] transition`}
             >
               <option value="">Seleccionar categoría</option>
               {categorias.map(cat => (
@@ -187,153 +275,108 @@ export default function EditarProducto() {
                 </option>
               ))}
             </select>
+            {errores.categoria_id && (
+              <span className="text-red-500 text-sm">
+                {errores.categoria_id}
+              </span>
+            )}
           </div>
 
-          <div style={styles.row}>
-            <div style={styles.field}>
-              <label style={styles.label}>Precio</label>
-              <input
-                type="number"
-                name="precio"
-                value={form.precio}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
+          <div className="flex gap-5 pt-4">
 
-            <div style={styles.field}>
-              <label style={styles.label}>Stock</label>
-              <input
-                type="number"
-                name="stock"
-                value={form.stock}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
-          </div>
-
-          <div style={styles.buttons}>
-            <button type="submit" style={styles.saveButton}>
+            <button
+              type="submit"
+              disabled={guardando}
+              className="px-8 py-3 rounded-xl bg-[#b89c80] text-white font-semibold
+                         hover:bg-[#a38366] transition flex items-center gap-2"
+            >
+              {guardando && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
               {guardando ? "Guardando..." : "Guardar cambios"}
             </button>
 
             <button
               type="button"
-              style={styles.cancelButton}
-              onClick={() => router.push("/home/productos")}
+              onClick={() => {
+                if (hayCambios()) {
+                  setMostrarModalSalida(true)
+                } else {
+                  router.push("/home/productos")
+                }
+              }}
+              className="px-8 py-3 rounded-xl border border-gray-300
+                         bg-white text-black hover:bg-gray-100 transition"
             >
               Cancelar
             </button>
+
           </div>
 
         </div>
 
       </form>
+
+      {/* MODAL SALIDA */}
+      <AnimatePresence>
+        {mostrarModalSalida && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm
+                       flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white p-8 rounded-2xl shadow-xl w-[400px]"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
+              <h2 className="text-xl font-semibold text-black mb-3">
+                Hay cambios sin guardar
+              </h2>
+
+              <p className="text-gray-600 mb-6">
+                Si sales ahora perderás los cambios realizados.
+              </p>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setMostrarModalSalida(false)}
+                  className="px-4 py-2 border rounded-lg"
+                >
+                  Seguir editando
+                </button>
+
+                <button
+                  onClick={() => router.push("/home/productos")}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                >
+                  Salir sin guardar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="fixed bottom-6 right-6
+                       bg-[#b89c80] text-white
+                       px-6 py-3 rounded-xl shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "40px",
-    backgroundColor: "#f3f1ed",
-    minHeight: "100vh",
-  },
-  title: {
-    fontSize: "32px",
-    marginBottom: "30px",
-    color: "#3b2f2f",
-  },
-  card: {
-    display: "flex",
-    gap: "60px",
-    backgroundColor: "white",
-    padding: "50px",
-    borderRadius: "25px",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-  },
-  imageSection: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "15px",
-  },
-  imageWrapper: {
-    position: "relative",
-    width: "250px",
-    height: "250px",
-    borderRadius: "20px",
-    overflow: "hidden",
-    backgroundColor: "#f0ede9",
-  },
-  imagePlaceholder: {
-    fontSize: "60px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100%",
-  },
-  imageButton: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#5f8368",
-    color: "white",
-    cursor: "pointer",
-  },
-  formSection: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "25px",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    marginBottom: "8px",
-    fontSize: "14px",
-    color: "#5f5f5f",
-  },
-  input: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#f7f3ef",
-    fontSize: "14px",
-  },
-  select: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid #e2d8cc",
-    backgroundColor: "#f7f3ef",
-    fontSize: "14px",
-  },
-  row: {
-    display: "flex",
-    gap: "20px",
-  },
-  buttons: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "10px",
-  },
-  saveButton: {
-    padding: "12px 30px",
-    borderRadius: "12px",
-    border: "none",
-    backgroundColor: "#a5a078",
-    color: "white",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  cancelButton: {
-    padding: "12px 30px",
-    borderRadius: "12px",
-    border: "1px solid #d1c7bb",
-    backgroundColor: "#f7f3ef",
-    cursor: "pointer",
-  },
 }

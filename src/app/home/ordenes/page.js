@@ -1,224 +1,209 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useState, useMemo } from "react"
+import { motion } from "framer-motion"
 
 export default function OrdenesPage() {
 
   const router = useRouter()
 
   const ordenes = [
-    { id: "01", cliente: "AXEL", fecha: "04-05-2025", status: "Pendiente", total: 200 },
-    { id: "02", cliente: "MIRANDA", fecha: "04-05-2025", status: "Entregado", total: 400 },
-    { id: "03", cliente: "JOSÉ", fecha: "04-05-2025", status: "Cancelado", total: 150 },
-    { id: "04", cliente: "Keila", fecha: "04-05-2025", status: "Pendiente", total: 200 },
+    { id: "01", cliente: "AXEL", fecha: "2025-05-04", status: "Pendiente", total: 200 },
+    { id: "02", cliente: "MIRANDA", fecha: "2025-05-04", status: "Entregado", total: 400 },
+    { id: "03", cliente: "JOSÉ", fecha: "2025-05-04", status: "Cancelado", total: 150 },
+    { id: "04", cliente: "Keila", fecha: "2025-05-04", status: "Pendiente", total: 200 },
   ]
+
+  const [search, setSearch] = useState("")
+  const [statusFiltro, setStatusFiltro] = useState("")
+  const [fechaFiltro, setFechaFiltro] = useState("")
+
+  // 🔥 FILTRADO REAL
+  const ordenesFiltradas = useMemo(() => {
+    return ordenes.filter(o => {
+
+      const coincideBusqueda =
+        o.cliente.toLowerCase().includes(search.toLowerCase())
+
+      const coincideStatus =
+        !statusFiltro || o.status === statusFiltro
+
+      const hoy = new Date().toISOString().split("T")[0]
+
+      const coincideFecha =
+        !fechaFiltro ||
+        (fechaFiltro === "Hoy" && o.fecha === hoy) ||
+        (fechaFiltro === "Semana")
+
+      return coincideBusqueda && coincideStatus && coincideFecha
+    })
+  }, [search, statusFiltro, fechaFiltro])
+
+  // 🔥 MÉTRICAS
+  const totalVentas = ordenes.reduce((acc, o) => acc + o.total, 0)
+  const pendientes = ordenes.filter(o => o.status === "Pendiente").length
+  const entregados = ordenes.filter(o => o.status === "Entregado").length
 
   const getStatusStyle = (status) => {
     if (status === "Pendiente")
-      return { backgroundColor: "#f4d9a5", color: "#8a5a00" }
-
+      return "bg-yellow-200 text-yellow-800"
     if (status === "Entregado")
-      return { backgroundColor: "#cfe8d5", color: "#2f6b3f" }
-
+      return "bg-green-200 text-green-800"
     if (status === "Cancelado")
-      return { backgroundColor: "#f8cfcf", color: "#a11d1d" }
+      return "bg-red-200 text-red-700"
+  }
+
+  const getStatusIcon = (status) => {
+    if (status === "Pendiente") return "🟡"
+    if (status === "Entregado") return "🟢"
+    if (status === "Cancelado") return "🔴"
   }
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-8">
 
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Lista de pedidos</h1>
-        <div style={styles.avatar}></div>
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-semibold text-black">
+          Lista de pedidos
+        </h1>
+
+        <button
+          onClick={() => router.push("/home/ordenes/nueva")}
+          className="px-6 py-3 rounded-xl bg-[#b89c80]
+                     text-black font-semibold
+                     hover:bg-[#a38366] transition"
+        >
+          Orden nueva
+        </button>
       </div>
 
-      {/* Actions */}
-      <div style={styles.actions}>
+      {/* 🔥 MÉTRICAS */}
+      <div className="grid grid-cols-3 gap-6">
+
+        <div className="bg-white p-6 rounded-2xl shadow-md">
+          <p className="text-gray-600 text-sm">Total ventas</p>
+          <h2 className="text-2xl font-bold text-black">
+            ${totalVentas}
+          </h2>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-md">
+          <p className="text-gray-600 text-sm">Pendientes</p>
+          <h2 className="text-2xl font-bold text-yellow-700">
+            {pendientes}
+          </h2>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-md">
+          <p className="text-gray-600 text-sm">Entregados</p>
+          <h2 className="text-2xl font-bold text-green-700">
+            {entregados}
+          </h2>
+        </div>
+
+      </div>
+
+      {/* 🔎 FILTROS */}
+      <div className="flex gap-4">
+
         <input
-          placeholder="Buscar producto"
-          style={styles.search}
+          placeholder="Buscar cliente"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300
+                     bg-white text-black
+                     focus:outline-none focus:ring-2 focus:ring-[#b89c80]"
         />
 
-        <select style={styles.filter}>
-          <option>Status</option>
+        <select
+          value={statusFiltro}
+          onChange={(e) => setStatusFiltro(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300
+                     bg-white text-black"
+        >
+          <option value="">Todos</option>
           <option>Pendiente</option>
           <option>Entregado</option>
           <option>Cancelado</option>
         </select>
 
-        <select style={styles.filter}>
-          <option>Fecha</option>
+        <select
+          value={fechaFiltro}
+          onChange={(e) => setFechaFiltro(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300
+                     bg-white text-black"
+        >
+          <option value="">Todas las fechas</option>
           <option>Hoy</option>
-          <option>Esta semana</option>
+          <option>Semana</option>
         </select>
+
       </div>
 
-      {/* Tabla */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
+      {/* TABLA */}
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+
+        <table className="w-full text-left">
+
+          <thead className="bg-[#d6c6b2] text-black">
             <tr>
-              <th style={styles.th}>ID</th>
-              <th style={styles.th}>Cliente</th>
-              <th style={styles.th}>Fecha</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Total</th>
-              <th style={styles.th}>Detalle</th>
+              <th className="p-4">ID</th>
+              <th className="p-4">Cliente</th>
+              <th className="p-4">Fecha</th>
+              <th className="p-4">Status</th>
+              <th className="p-4">Total</th>
+              <th className="p-4">Detalle</th>
             </tr>
           </thead>
 
-          <tbody>
-            {ordenes.map((orden) => (
-              <tr key={orden.id} style={styles.tr}>
-                <td style={styles.td}>{orden.id}</td>
-                <td style={styles.td}>{orden.cliente}</td>
-                <td style={styles.td}>{orden.fecha}</td>
+          <tbody className="divide-y text-black">
 
-                <td style={styles.td}>
+            {ordenesFiltradas.map((orden) => (
+              <motion.tr
+                key={orden.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="hover:bg-gray-50 transition"
+              >
+                <td className="p-4">{orden.id}</td>
+                <td className="p-4 font-medium">{orden.cliente}</td>
+                <td className="p-4">{orden.fecha}</td>
+
+                <td className="p-4">
                   <span
-                    style={{
-                      ...styles.status,
-                      ...getStatusStyle(orden.status),
-                    }}
+                    className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 w-fit ${getStatusStyle(orden.status)}`}
                   >
+                    {getStatusIcon(orden.status)}
                     {orden.status}
                   </span>
                 </td>
 
-                <td style={styles.td}>{orden.total}</td>
+                <td className="p-4 font-semibold">
+                  ${orden.total}
+                </td>
 
-                <td style={styles.td}>
+                <td className="p-4">
                   <button
-                    style={styles.detailButton}
                     onClick={() =>
                       router.push(`/home/ordenes/${orden.id}`)
                     }
+                    className="px-3 py-1.5 rounded-lg bg-[#e76f51]
+                               text-white hover:bg-[#d65d3f] transition"
                   >
-                    📄
+                    Ver
                   </button>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
+
           </tbody>
+
         </table>
 
-        {/* Botón inferior */}
-        <div style={styles.newOrderContainer}>
-          <button
-            style={styles.newOrderButton}
-            onClick={() => router.push("/home/ordenes/nueva")}
-          >
-            Orden nueva
-          </button>
-        </div>
-
       </div>
+
     </div>
   )
-}
-
-const styles = {
-  container: {
-    backgroundColor: "#f3f1ed",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "25px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "28px",
-    color: "#3b2f2f",
-  },
-
-  avatar: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    backgroundColor: "#b89c80",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "25px",
-  },
-
-  search: {
-    padding: "10px 15px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    backgroundColor: "#ffffff",
-    width: "220px",
-  },
-
-  filter: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    backgroundColor: "#d9cbb6",
-    cursor: "pointer",
-  },
-
-  tableContainer: {
-    backgroundColor: "white",
-    borderRadius: "12px",
-    overflow: "hidden",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-
-  th: {
-    textAlign: "left",
-    padding: "15px",
-    backgroundColor: "#f0ede9",
-  },
-
-  tr: {
-    borderTop: "1px solid #eee",
-  },
-
-  td: {
-    padding: "15px",
-  },
-
-  status: {
-    padding: "5px 12px",
-    borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "bold",
-  },
-
-  detailButton: {
-    padding: "6px 10px",
-    borderRadius: "6px",
-    border: "none",
-    backgroundColor: "#e76f51",
-    color: "white",
-    cursor: "pointer",
-  },
-
-  newOrderContainer: {
-    display: "flex",
-    justifyContent: "flex-end",
-    padding: "20px",
-  },
-
-  newOrderButton: {
-    padding: "12px 20px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
 }

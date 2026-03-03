@@ -1,36 +1,123 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 export default function AgregarPersonal() {
+
+  const router = useRouter()
+
   return (
-    <div style={styles.container}>
-      <h1>Agregar personal</h1>
+    <div className="w-full space-y-8">
 
-      <div style={styles.card}>
-        <input placeholder="Nombre" style={styles.input} />
-        <input placeholder="Email" style={styles.input} />
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-semibold text-black">
+          Agregar personal
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Añade un nuevo miembro al equipo
+        </p>
+      </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
-          <input placeholder="Teléfono" style={styles.input} />
-          <input placeholder="Rol" style={styles.input} />
+      {/* CARD */}
+      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-3xl">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* Nombre */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Nombre
+            </label>
+            <input
+              placeholder="Nombre completo"
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            />
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Email
+            </label>
+            <input
+              placeholder="correo@email.com"
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            />
+          </div>
+
+          {/* Teléfono */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Teléfono
+            </label>
+            <input
+              placeholder="993 000 0000"
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            />
+          </div>
+
+          {/* Rol */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-2">
+              Rol
+            </label>
+            <select
+              className="px-4 py-3 rounded-xl border border-gray-300
+                         text-black focus:ring-2 focus:ring-[#b89c80]
+                         outline-none transition"
+            >
+              <option>Seleccionar rol</option>
+              <option>Admin</option>
+              <option>Staff</option>
+              <option>Marketing</option>
+            </select>
+          </div>
+
         </div>
 
-        <textarea placeholder="Dirección" style={styles.textarea} />
-
-        <div style={styles.buttons}>
-          <button style={styles.cancel}>Cancelar</button>
-          <button style={styles.add}>Añadir</button>
+        {/* Dirección */}
+        <div className="flex flex-col mt-6">
+          <label className="text-sm text-gray-600 mb-2">
+            Dirección
+          </label>
+          <textarea
+            placeholder="Dirección completa..."
+            className="px-4 py-3 rounded-xl border border-gray-300
+                       text-black min-h-[120px]
+                       focus:ring-2 focus:ring-[#b89c80]
+                       outline-none transition"
+          />
         </div>
+
+        {/* BOTONES */}
+        <div className="flex justify-end gap-4 mt-8">
+
+          <button
+            onClick={() => router.back()}
+            className="px-6 py-3 rounded-xl border border-gray-300
+                       text-black hover:bg-gray-100 transition"
+          >
+            Cancelar
+          </button>
+
+          <button
+            className="px-6 py-3 rounded-xl
+                       bg-[#b89c80] text-black font-semibold
+                       hover:bg-[#a38366] transition"
+          >
+            Añadir
+          </button>
+
+        </div>
+
       </div>
     </div>
   )
-}
-
-const styles = {
-  container: { padding: "20px" },
-  card: { background: "#d9cbb6", padding: "20px", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "15px" },
-  input: { padding: "10px", borderRadius: "8px", border: "none" },
-  textarea: { padding: "10px", borderRadius: "8px", border: "none", minHeight: "100px" },
-  buttons: { display: "flex", justifyContent: "space-between" },
-  cancel: { padding: "10px 20px", background: "#eee", border: "none", borderRadius: "8px" },
-  add: { padding: "10px 20px", background: "#b89c80", border: "none", borderRadius: "8px" }
 }

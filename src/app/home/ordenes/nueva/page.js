@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 
 export default function NuevaOrdenPage() {
 
@@ -12,7 +12,24 @@ export default function NuevaOrdenPage() {
   ]
 
   const [carrito, setCarrito] = useState([])
+  const [search, setSearch] = useState("")
 
+  const [pastelPersonalizado, setPastelPersonalizado] = useState({
+    descripcion: "",
+    sabor: "",
+    tamaño: "",
+    imagen: null,
+    preview: null
+  })
+
+  // 🔎 FILTRO PRODUCTOS
+  const productosFiltrados = useMemo(() => {
+    return productos.filter(p =>
+      p.nombre.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [search])
+
+  // 🛒 AGREGAR PRODUCTO NORMAL
   const agregarProducto = (producto) => {
     const existe = carrito.find(p => p.id === producto.id)
 
@@ -29,13 +46,18 @@ export default function NuevaOrdenPage() {
     }
   }
 
+  // ❌ QUITAR PRODUCTO
+  const quitarProducto = (id) => {
+    setCarrito(carrito.filter(p => p.id !== id))
+  }
+
+  // ➕➖ CAMBIAR CANTIDAD
   const cambiarCantidad = (id, tipo) => {
     setCarrito(
       carrito.map(p => {
         if (p.id === id) {
           const nuevaCantidad =
             tipo === "sumar" ? p.cantidad + 1 : p.cantidad - 1
-
           return { ...p, cantidad: nuevaCantidad < 1 ? 1 : nuevaCantidad }
         }
         return p
@@ -43,99 +65,257 @@ export default function NuevaOrdenPage() {
     )
   }
 
+  // 🍰 AGREGAR PASTEL PERSONALIZADO
+  const agregarPastelPersonalizado = () => {
+
+    if (
+      !pastelPersonalizado.descripcion ||
+      !pastelPersonalizado.sabor ||
+      !pastelPersonalizado.tamaño
+    ) {
+      alert("Completa todos los campos del pastel")
+      return
+    }
+
+    const nuevo = {
+      id: Date.now(),
+      nombre: "Pastel personalizado",
+      precio: 50,
+      cantidad: 1,
+      personalizado: true,
+      ...pastelPersonalizado
+    }
+
+    setCarrito([...carrito, nuevo])
+
+    // Reset
+    setPastelPersonalizado({
+      descripcion: "",
+      sabor: "",
+      tamaño: "",
+      imagen: null,
+      preview: null
+    })
+  }
+
+  // 💰 TOTAL
   const total = carrito.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
     0
   )
 
   return (
-    <div style={styles.container}>
+    <div className="w-full space-y-8">
 
-      <h1 style={styles.title}>Agregar pedido</h1>
+      <h1 className="text-3xl font-semibold text-black">
+        Agregar pedido
+      </h1>
 
-      <div style={styles.content}>
+      <div className="flex gap-8">
 
-        {/* LADO IZQUIERDO */}
-        <div style={styles.left}>
+        {/* IZQUIERDA */}
+        <div className="flex-1 bg-white p-6 rounded-2xl shadow space-y-6">
 
           <input
             placeholder="Buscar producto"
-            style={styles.search}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black focus:ring-2 focus:ring-[#b89c80]"
           />
 
-          {productos.map(producto => (
-            <div
-              key={producto.id}
-              style={styles.productCard}
-              onClick={() => agregarProducto(producto)}
-            >
-              <div>
-                <strong>{producto.nombre}</strong>
-                <p style={styles.stock}>stock : {producto.stock}</p>
-              </div>
-              <span>${producto.precio}</span>
-            </div>
-          ))}
-
-        </div>
-
-        {/* LADO DERECHO */}
-        <div style={styles.right}>
-
-          <div style={styles.section}>
-            <h3>Cliente</h3>
-            <select style={styles.input}>
-              <option>Seleccionar Cliente</option>
-              <option>AXEL</option>
-              <option>MIRANDA</option>
-            </select>
-          </div>
-
-          <div style={styles.section}>
-            <h3>Resumen del carrito</h3>
-
-            {carrito.map(item => (
-              <div key={item.id} style={styles.cartItem}>
+          <div className="space-y-3">
+            {productosFiltrados.map(producto => (
+              <div
+                key={producto.id}
+                onClick={() => agregarProducto(producto)}
+                className="flex justify-between bg-[#f7f3ef] hover:bg-[#eee7df] px-4 py-3 rounded-xl cursor-pointer transition"
+              >
                 <div>
-                  <strong>{item.nombre}</strong>
-                  <p>${item.precio}</p>
+                  <p className="font-semibold text-black">{producto.nombre}</p>
+                  <p className="text-sm text-gray-500">
+                    Stock: {producto.stock}
+                  </p>
                 </div>
-
-                <div style={styles.quantity}>
-                  <button
-                    onClick={() => cambiarCantidad(item.id, "restar")}
-                    style={styles.qtyButton}
-                  >
-                    -
-                  </button>
-
-                  {item.cantidad}
-
-                  <button
-                    onClick={() => cambiarCantidad(item.id, "sumar")}
-                    style={styles.qtyButton}
-                  >
-                    +
-                  </button>
-                </div>
+                <span className="font-semibold text-black">
+                  ${producto.precio}
+                </span>
               </div>
             ))}
           </div>
 
-          <div style={styles.section}>
-            <h3>Método de pago</h3>
-            <select style={styles.input}>
-              <option>Efectivo</option>
-              <option>Tarjeta</option>
-            </select>
+          {/* 🍰 CREAR PASTEL PERSONALIZADO */}
+          <div className="border-t pt-6 space-y-4">
+
+            <h2 className="text-xl font-semibold text-black">
+              Crear pastel personalizado
+            </h2>
+
+            <textarea
+              placeholder="Descripción del diseño..."
+              value={pastelPersonalizado.descripcion}
+              onChange={(e) =>
+                setPastelPersonalizado({
+                  ...pastelPersonalizado,
+                  descripcion: e.target.value
+                })
+              }
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black"
+            />
+
+            <input
+              placeholder="Sabor"
+              value={pastelPersonalizado.sabor}
+              onChange={(e) =>
+                setPastelPersonalizado({
+                  ...pastelPersonalizado,
+                  sabor: e.target.value
+                })
+              }
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black"
+            />
+
+            <input
+              placeholder="Tamaño (ej. 1kg, 2 pisos...)"
+              value={pastelPersonalizado.tamaño}
+              onChange={(e) =>
+                setPastelPersonalizado({
+                  ...pastelPersonalizado,
+                  tamaño: e.target.value
+                })
+              }
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black"
+            />
+
+            {/* DRAG & DROP */}
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const file = e.dataTransfer.files[0]
+                if (file) {
+                  setPastelPersonalizado({
+                    ...pastelPersonalizado,
+                    imagen: file,
+                    preview: URL.createObjectURL(file)
+                  })
+                }
+              }}
+              onClick={() => document.getElementById("fileInputPastel").click()}
+              className="border-2 border-dashed border-[#b89c80]
+                         rounded-xl p-6 text-center cursor-pointer
+                         hover:bg-[#f7f3ef] transition"
+            >
+              <p className="text-black">
+                Arrastra la imagen aquí o haz click
+              </p>
+
+              {pastelPersonalizado.preview && (
+                <img
+                  src={pastelPersonalizado.preview}
+                  alt="preview"
+                  className="mx-auto mt-4 w-40 rounded-lg"
+                />
+              )}
+            </div>
+
+            <input
+              id="fileInputPastel"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files[0]
+                if (file) {
+                  setPastelPersonalizado({
+                    ...pastelPersonalizado,
+                    imagen: file,
+                    preview: URL.createObjectURL(file)
+                  })
+                }
+              }}
+            />
+
+            <button
+              onClick={agregarPastelPersonalizado}
+              className="px-6 py-2 bg-[#b89c80] text-black rounded-xl hover:bg-[#a38366] transition font-semibold"
+            >
+              Agregar pastel personalizado
+            </button>
+
+          </div>
+        </div>
+
+        {/* DERECHA */}
+        <div className="w-[380px] bg-white p-6 rounded-2xl shadow space-y-6">
+
+          <h3 className="text-black font-semibold">
+            Resumen del carrito
+          </h3>
+
+          {carrito.length === 0 && (
+            <p className="text-gray-500 text-sm">
+              No hay productos agregados
+            </p>
+          )}
+
+          {carrito.map(item => (
+            <div
+              key={item.id}
+              className="bg-[#f7f3ef] px-4 py-3 rounded-xl space-y-2"
+            >
+              <div className="flex justify-between items-center">
+                <p className="font-semibold text-black">
+                  {item.nombre}
+                </p>
+
+                <button
+                  onClick={() => quitarProducto(item.id)}
+                  className="text-red-500 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {item.personalizado && (
+                <p className="text-sm text-gray-600">
+                  {item.descripcion} | {item.sabor} | {item.tamaño}
+                </p>
+              )}
+
+              <div className="flex justify-between items-center">
+                <div className="flex gap-3 items-center">
+                  <button
+                    onClick={() => cambiarCantidad(item.id, "restar")}
+                    className="w-7 h-7 bg-[#d9cbb6] rounded-full"
+                  >
+                    -
+                  </button>
+
+                  <span className="text-black">
+                    {item.cantidad}
+                  </span>
+
+                  <button
+                    onClick={() => cambiarCantidad(item.id, "sumar")}
+                    className="w-7 h-7 bg-[#d9cbb6] rounded-full"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <span className="font-semibold text-black">
+                  ${item.precio * item.cantidad}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex justify-between text-xl font-bold text-black border-t pt-4">
+            <span>Total</span>
+            <span>${total}</span>
           </div>
 
-          <div style={styles.total}>
-            <h2>Total</h2>
-            <h2>${total}</h2>
-          </div>
-
-          <button style={styles.orderButton}>
+          <button className="w-full py-3 bg-[#b89c80] text-black rounded-xl hover:bg-[#a38366] transition font-semibold">
             Realizar pedido
           </button>
 
@@ -143,110 +323,4 @@ export default function NuevaOrdenPage() {
       </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: "30px",
-    backgroundColor: "#f3f1ed",
-  },
-
-  title: {
-    marginBottom: "20px",
-    color: "#3b2f2f",
-  },
-
-  content: {
-    display: "flex",
-    gap: "30px",
-  },
-
-  left: {
-    flex: 1,
-    backgroundColor: "white",
-    padding: "20px",
-    borderRadius: "15px",
-  },
-
-  right: {
-    width: "350px",
-    backgroundColor: "white",
-    padding: "20px",
-    borderRadius: "15px",
-  },
-
-  search: {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "20px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-  },
-
-  productCard: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "12px",
-    borderRadius: "10px",
-    backgroundColor: "#f7f3ef",
-    marginBottom: "10px",
-    cursor: "pointer",
-  },
-
-  stock: {
-    fontSize: "12px",
-    color: "#777",
-    margin: 0,
-  },
-
-  section: {
-    marginBottom: "20px",
-  },
-
-  input: {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-  },
-
-  cartItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f7f3ef",
-    padding: "10px",
-    borderRadius: "8px",
-    marginBottom: "10px",
-  },
-
-  quantity: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-
-  qtyButton: {
-    border: "none",
-    backgroundColor: "#d9cbb6",
-    borderRadius: "5px",
-    cursor: "pointer",
-    padding: "5px 8px",
-  },
-
-  total: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "15px",
-  },
-
-  orderButton: {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#b89c80",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
 }
