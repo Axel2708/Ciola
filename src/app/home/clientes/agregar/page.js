@@ -129,9 +129,10 @@ export default function AgregarClientePage() {
 
             <button
               type="button"
-              onClick={() => router.push("/home/clientes")}
-              className="px-6 py-3 rounded-xl border border-gray-300
-                         hover:bg-gray-100 transition duration-300"
+            onClick={() => router.push("/home/clientes")}
+            className="px-6 py-3 rounded-xl border border-[#8B5E3C] 
+           bg-[#A67B5B] text-white
+           hover:bg-[#8B5E3C] transition duration-300"
             >
               Cancelar
             </button>

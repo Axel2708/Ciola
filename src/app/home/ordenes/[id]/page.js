@@ -1,51 +1,110 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function DetallePedidoPage() {
 
   const { id } = useParams()
   const router = useRouter()
 
-  const [pedido, setPedido] = useState({
-    id: id,
-    cliente: "AXEL",
-    fecha: "04/04/2025",
-    status: "Pendiente",
-    payment: "Online",
-    productos: [
-      {
-        nombre: "Pastel chocolate",
-        cantidad: 1,
-        total: 4.3,
-      },
-      {
-        nombre: "Pastel personalizado",
-        cantidad: 1,
-        total: 50,
-        personalizado: true,
-        descripcion: "Pastel de cumpleaños con flores",
-        sabor: "Chocolate",
-        tamaño: "2 pisos",
-        imagen_url: "/ejemplo.jpg"
+  const [pedido, setPedido] = useState(null)
+
+  useEffect(() => {
+    fetchPedido()
+  }, [])
+
+  async function fetchPedido() {
+
+    const { data: orden } = await supabase
+      .from("ordenes")
+      .select(`
+        id,
+        fecha,
+        estado,
+        metodo_pago,
+        clientes ( nombre )
+      `)
+      .eq("id", id)
+      .single()
+
+    const { data: detalles } = await supabase
+      .from("detalle_orden")
+      .select(`
+        cantidad,
+        subtotal,
+        descripcion,
+        imagen_url,
+        sabor,
+        tamaño,
+        productos ( nombre )
+      `)
+      .eq("orden_id", id)
+
+    const productos = (detalles || []).map(d => {
+
+      const esPersonalizado = !d.productos
+
+      return {
+        nombre: esPersonalizado
+          ? "🎂 Pastel personalizado"
+          : d.productos?.nombre,
+
+        cantidad: d.cantidad,
+        total: d.subtotal,
+        descripcion: d.descripcion,
+        imagen_url: d.imagen_url,
+        sabor: d.sabor,
+        tamaño: d.tamaño,
+        personalizado: esPersonalizado
       }
-    ]
-  })
+    })
+
+    setPedido({
+      id: orden.id,
+      cliente: orden.clientes?.nombre || "Sin cliente",
+      fecha: orden.fecha,
+      status: orden.estado,
+      payment: orden.metodo_pago || "N/A",
+      productos
+    })
+  }
+
+  if (!pedido) return <div className="p-6 text-black">Cargando...</div>
 
   const estados = ["Pendiente", "En preparación", "Listo", "Entregado"]
 
-  const cambiarEstado = () => {
-    if (pedido.status === "Cancelado") return
+  const cambiarEstado = async () => {
+
     const index = estados.indexOf(pedido.status)
-    if (index < estados.length - 1) {
-      setPedido({ ...pedido, status: estados[index + 1] })
-    }
+    if (index >= estados.length - 1) return
+
+    const nuevoEstado = estados[index + 1]
+
+    await supabase
+      .from("ordenes")
+      .update({ estado: nuevoEstado })
+      .eq("id", pedido.id)
+
+    setPedido({ ...pedido, status: nuevoEstado })
+    router.refresh()
   }
 
-  const cancelarPedido = () => {
-    if (pedido.status === "Cancelado") return
-    setPedido({ ...pedido, status: "Cancelado" })
+  const cancelarPedido = async () => {
+
+    await supabase
+      .from("detalle_orden")
+      .delete()
+      .eq("orden_id", pedido.id)
+
+    await supabase
+      .from("ordenes")
+      .delete()
+      .eq("id", pedido.id)
+
+    alert("Pedido eliminado 💀")
+    router.push("/home/ordenes")
   }
 
   const totalGeneral = pedido.productos.reduce(
@@ -65,25 +124,19 @@ export default function DetallePedidoPage() {
     <div className="w-full space-y-8">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => router.back()}
+          className="px-4 py-2 rounded-lg border text-black hover:bg-gray-100"
+        >
+          ← Regresar
+        </button>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 rounded-lg border border-gray-300 
-                       text-black hover:bg-gray-100 transition"
-          >
-            ← Regresar
-          </button>
-
-          <h1 className="text-3xl font-semibold text-black">
-            Detalles del pedido
-          </h1>
-        </div>
-
+        <h1 className="text-3xl font-semibold text-black">
+          Detalles del pedido
+        </h1>
       </div>
 
-      {/* CARD */}
       <div className="bg-white p-8 rounded-2xl shadow-md space-y-8">
 
         {/* INFO */}
@@ -129,7 +182,7 @@ export default function DetallePedidoPage() {
         {/* TIMELINE */}
         {pedido.status !== "Cancelado" && (
           <>
-            <div className="flex justify-between items-center pt-6 border-t">
+            <div className="flex justify-between pt-6 border-t">
               {estados.map((estado, index) => {
 
                 const activo = estados.indexOf(pedido.status) >= index
@@ -138,9 +191,7 @@ export default function DetallePedidoPage() {
                   <div key={estado} className="flex-1 text-center">
                     <div className={`w-8 h-8 mx-auto rounded-full 
                       ${activo ? "bg-[#b89c80]" : "bg-gray-300"}`} />
-                    <p className="text-sm mt-2 text-black">
-                      {estado}
-                    </p>
+                    <p className="text-sm mt-2 text-black">{estado}</p>
                   </div>
                 )
               })}
@@ -148,7 +199,7 @@ export default function DetallePedidoPage() {
 
             <button
               onClick={cambiarEstado}
-              className="px-6 py-2 bg-gray-200 rounded-lg text-black hover:bg-gray-300 transition"
+              className="px-6 py-2 bg-gray-200 rounded-lg text-black"
             >
               Avanzar estado
             </button>
@@ -159,17 +210,9 @@ export default function DetallePedidoPage() {
         <div className="flex justify-end">
           <button
             onClick={cancelarPedido}
-            disabled={pedido.status === "Cancelado"}
-            className={`px-6 py-2 rounded-xl font-semibold transition
-              ${
-                pedido.status === "Cancelado"
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-red-500 text-white hover:bg-red-600"
-              }`}
+            className="px-6 py-2 bg-red-500 text-white rounded-xl"
           >
-            {pedido.status === "Cancelado"
-              ? "Pedido cancelado"
-              : "Cancelar pedido"}
+            Cancelar pedido
           </button>
         </div>
 
@@ -179,32 +222,46 @@ export default function DetallePedidoPage() {
           {pedido.productos.map((item, index) => (
             <div key={index} className="bg-[#f7f3ef] p-4 rounded-xl space-y-3">
 
-              <div className="flex justify-between">
-                <h3 className="font-semibold text-black">
+              {/* TITULO */}
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-black text-lg">
                   {item.nombre}
                 </h3>
-                <span className="font-semibold text-black">
+                <span className="font-bold text-black">
                   ${item.total}
                 </span>
               </div>
 
+              {/* IMAGEN */}
+              {item.imagen_url && (
+                <img
+                  src={item.imagen_url}
+                  className="w-full max-w-xs rounded-xl shadow-md border"
+                />
+              )}
+
+              {/* DETALLES */}
               {item.personalizado && (
-                <div className="space-y-2 text-sm text-gray-700">
+                <div className="text-sm text-gray-700 space-y-1">
 
-                  <p><strong>Descripción:</strong> {item.descripcion}</p>
-                  <p><strong>Sabor:</strong> {item.sabor}</p>
-                  <p><strong>Tamaño:</strong> {item.tamaño}</p>
+                  {item.descripcion && (
+                    <p>📝 {item.descripcion}</p>
+                  )}
 
-                  {item.imagen_url && (
-                    <img
-                      src={item.imagen_url}
-                      alt="Pastel personalizado"
-                      className="w-48 rounded-lg"
-                    />
+                  {item.sabor && (
+                    <p>🍫 Sabor: <strong>{item.sabor}</strong></p>
+                  )}
+
+                  {item.tamaño && (
+                    <p>📏 Tamaño: <strong>{item.tamaño}</strong></p>
                   )}
 
                 </div>
               )}
+
+              <p className="text-sm text-gray-500">
+                Cantidad: {item.cantidad}
+              </p>
 
             </div>
           ))}

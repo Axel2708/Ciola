@@ -1,27 +1,73 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function PersonalPage() {
 
   const [search, setSearch] = useState("")
+  const [personal, setPersonal] = useState([])
 
-  const personal = [
-    { id: 1, nombre: "Persona 1", email: "persona1@gmail.com", rol: "Admin", status: "Activo" },
-    { id: 2, nombre: "Persona 2", email: "persona2@gmail.com", rol: "Staff", status: "Activo" },
-    { id: 3, nombre: "Persona 3", email: "persona3@gmail.com", rol: "Staff", status: "Desactivado" },
-    { id: 4, nombre: "Persona 4", email: "persona4@gmail.com", rol: "Staff", status: "Activo" },
-  ]
+  useEffect(() => {
+    obtenerPersonal()
+  }, [])
 
-  const filtrado = personal.filter(p =>
-    p.nombre.toLowerCase().includes(search.toLowerCase())
-  )
+  async function obtenerPersonal() {
+    const { data, error } = await supabase
+      .from("perfiles")
+      .select("*")
 
-  const getStatusStyle = (status) => {
-    if (status === "Activo")
-      return "bg-green-100 text-green-700"
-    return "bg-red-100 text-red-700"
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setPersonal(data || [])
+  }
+
+  // 🔍 FILTRO MEJORADO
+  const filtrado = useMemo(() => {
+    return personal.filter(p =>
+      (p.nombre || "")
+        .toLowerCase()
+        .includes(search.toLowerCase().trim())
+    )
+  }, [search, personal])
+
+  // 🎨 STATUS
+  const getStatusStyle = (activo) => {
+    return activo
+      ? "bg-green-100 text-green-700"
+      : "bg-red-100 text-red-700"
+  }
+
+  // 🎭 ROL BONITO
+  const getRol = (id) => {
+    if (id === 1) return "Admin"
+    if (id === 2) return "Staff"
+    if (id === 3) return "Marketing"
+    return "Sin rol"
+  }
+
+  // 🗑️ ELIMINAR (INSTANTÁNEO 🔥)
+  const eliminar = async (id) => {
+
+    const confirm = window.confirm("¿Eliminar usuario?")
+    if (!confirm) return
+
+    const { error } = await supabase
+      .from("perfiles")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      alert("Error al eliminar")
+      return
+    }
+
+    // 💥 ACTUALIZAR UI SIN RECARGAR
+    setPersonal(prev => prev.filter(p => p.id !== id))
   }
 
   return (
@@ -85,6 +131,14 @@ export default function PersonalPage() {
 
           <tbody>
 
+            {filtrado.length === 0 && (
+              <tr>
+                <td colSpan="5" className="text-center p-6 text-gray-500">
+                  No se encontraron resultados 😢
+                </td>
+              </tr>
+            )}
+
             {filtrado.map((persona) => (
               <tr
                 key={persona.id}
@@ -92,13 +146,16 @@ export default function PersonalPage() {
               >
                 <td className="p-4 text-black">{persona.nombre}</td>
                 <td className="p-4 text-black">{persona.email}</td>
-                <td className="p-4 text-black">{persona.rol}</td>
+
+                <td className="p-4 text-black">
+                  {getRol(persona.id_rol)}
+                </td>
 
                 <td className="p-4">
                   <span
-                    className={`px-4 py-1 rounded-full text-sm font-semibold ${getStatusStyle(persona.status)}`}
+                    className={`px-4 py-1 rounded-full text-sm font-semibold ${getStatusStyle(persona.activo)}`}
                   >
-                    {persona.status}
+                    {persona.activo ? "Activo" : "Desactivado"}
                   </span>
                 </td>
 
@@ -115,6 +172,7 @@ export default function PersonalPage() {
                     </Link>
 
                     <button
+                      onClick={() => eliminar(persona.id)}
                       className="px-3 py-1 rounded-lg
                                  bg-[#e76f51] text-white
                                  hover:bg-[#d65b3f] transition"

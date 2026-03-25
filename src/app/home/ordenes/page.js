@@ -1,25 +1,58 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion } from "framer-motion"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function OrdenesPage() {
 
   const router = useRouter()
 
-  const ordenes = [
-    { id: "01", cliente: "AXEL", fecha: "2025-05-04", status: "Pendiente", total: 200 },
-    { id: "02", cliente: "MIRANDA", fecha: "2025-05-04", status: "Entregado", total: 400 },
-    { id: "03", cliente: "JOSÉ", fecha: "2025-05-04", status: "Cancelado", total: 150 },
-    { id: "04", cliente: "Keila", fecha: "2025-05-04", status: "Pendiente", total: 200 },
-  ]
+  const [ordenes, setOrdenes] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState("")
   const [statusFiltro, setStatusFiltro] = useState("")
   const [fechaFiltro, setFechaFiltro] = useState("")
 
-  // 🔥 FILTRADO REAL
+  useEffect(() => {
+    fetchOrdenes()
+  }, [])
+
+  async function fetchOrdenes() {
+
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from("ordenes")
+      .select(`
+        id,
+        fecha,
+        estado,
+        total,
+        clientes (
+          nombre
+        )
+      `)
+      .order("created_at", { ascending: false })
+
+    if (!error && data) {
+
+      const ordenesFormateadas = data.map(o => ({
+        id: o.id,
+        cliente: o.clientes?.nombre || "Sin cliente",
+        fecha: o.fecha,
+        status: o.estado, // 🔥 FIX AQUÍ
+        total: o.total
+      }))
+
+      setOrdenes(ordenesFormateadas)
+    }
+
+    setLoading(false)
+  }
+
   const ordenesFiltradas = useMemo(() => {
     return ordenes.filter(o => {
 
@@ -38,9 +71,8 @@ export default function OrdenesPage() {
 
       return coincideBusqueda && coincideStatus && coincideFecha
     })
-  }, [search, statusFiltro, fechaFiltro])
+  }, [search, statusFiltro, fechaFiltro, ordenes])
 
-  // 🔥 MÉTRICAS
   const totalVentas = ordenes.reduce((acc, o) => acc + o.total, 0)
   const pendientes = ordenes.filter(o => o.status === "Pendiente").length
   const entregados = ordenes.filter(o => o.status === "Entregado").length
@@ -79,7 +111,7 @@ export default function OrdenesPage() {
         </button>
       </div>
 
-      {/* 🔥 MÉTRICAS */}
+      {/* MÉTRICAS */}
       <div className="grid grid-cols-3 gap-6">
 
         <div className="bg-white p-6 rounded-2xl shadow-md">
@@ -105,7 +137,7 @@ export default function OrdenesPage() {
 
       </div>
 
-      {/* 🔎 FILTROS */}
+      {/* FILTROS */}
       <div className="flex gap-4">
 
         <input
@@ -129,17 +161,6 @@ export default function OrdenesPage() {
           <option>Cancelado</option>
         </select>
 
-        <select
-          value={fechaFiltro}
-          onChange={(e) => setFechaFiltro(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-300
-                     bg-white text-black"
-        >
-          <option value="">Todas las fechas</option>
-          <option>Hoy</option>
-          <option>Semana</option>
-        </select>
-
       </div>
 
       {/* TABLA */}
@@ -160,7 +181,11 @@ export default function OrdenesPage() {
 
           <tbody className="divide-y text-black">
 
-            {ordenesFiltradas.map((orden) => (
+            {loading ? (
+              <tr>
+                <td className="p-6">Cargando...</td>
+              </tr>
+            ) : ordenesFiltradas.map((orden) => (
               <motion.tr
                 key={orden.id}
                 initial={{ opacity: 0, y: 6 }}

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function EditarPersonalPage() {
 
@@ -9,18 +10,86 @@ export default function EditarPersonalPage() {
   const { id } = useParams()
 
   const [form, setForm] = useState({
-    nombre: "Persona",
-    email: "persona@gmail.com",
-    telefono: "9930000000",
-    rol: "Staff",
-    direccion: "Dirección ejemplo"
+    nombre: "",
+    email: "",
+    telefono: "",
+    rol: "",
+    direccion: ""
   })
 
+  // 🔥 CARGAR DATOS REALES
+  useEffect(() => {
+    if (id) obtenerPersona()
+  }, [id])
+
+  const obtenerPersona = async () => {
+
+    const { data, error } = await supabase
+      .from("perfiles")
+      .select("*")
+      .eq("id", id)
+      .single()
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
+    setForm({
+      nombre: data.nombre || "",
+      email: data.email || "",
+      telefono: data.telefono || "",
+      direccion: data.direccion || "",
+      rol: convertirRol(data.id_rol)
+    })
+  }
+
+  // 🔄 CONVERTIR ID → TEXTO
+  const convertirRol = (id) => {
+    if (id === 1) return "Admin"
+    if (id === 2) return "Staff"
+    if (id === 3) return "Marketing"
+    return ""
+  }
+
+  // 🔄 TEXTO → ID
+  const convertirRolId = (rol) => {
+    if (rol === "Admin") return 1
+    if (rol === "Staff") return 2
+    if (rol === "Marketing") return 3
+    return null
+  }
+
+  // INPUTS
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value
     })
+  }
+
+  // 💾 GUARDAR
+  const guardar = async () => {
+
+    const { error } = await supabase
+      .from("perfiles")
+      .update({
+        nombre: form.nombre,
+        email: form.email,
+        telefono: form.telefono,
+        direccion: form.direccion,
+        id_rol: convertirRolId(form.rol)
+      })
+      .eq("id", id)
+
+    if (error) {
+      console.log(error)
+      alert("Error al actualizar")
+      return
+    }
+
+    alert("Actualizado ✨")
+    router.push("/home/personal")
   }
 
   return (
@@ -47,61 +116,45 @@ export default function EditarPersonalPage() {
 
           {/* Nombre */}
           <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Nombre
-            </label>
+            <label className="text-sm text-gray-600 mb-2">Nombre</label>
             <input
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
+              className="px-4 py-3 rounded-xl border border-gray-300 text-black"
             />
           </div>
 
           {/* Email */}
           <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Email
-            </label>
+            <label className="text-sm text-gray-600 mb-2">Email</label>
             <input
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
+              className="px-4 py-3 rounded-xl border border-gray-300 text-black"
             />
           </div>
 
           {/* Teléfono */}
           <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Teléfono
-            </label>
+            <label className="text-sm text-gray-600 mb-2">Teléfono</label>
             <input
               name="telefono"
               value={form.telefono}
               onChange={handleChange}
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
+              className="px-4 py-3 rounded-xl border border-gray-300 text-black"
             />
           </div>
 
           {/* Rol */}
           <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Rol
-            </label>
+            <label className="text-sm text-gray-600 mb-2">Rol</label>
             <select
               name="rol"
               value={form.rol}
               onChange={handleChange}
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
+              className="px-4 py-3 rounded-xl border border-gray-300 text-black"
             >
               <option>Admin</option>
               <option>Staff</option>
@@ -113,17 +166,12 @@ export default function EditarPersonalPage() {
 
         {/* Dirección */}
         <div className="flex flex-col mt-6">
-          <label className="text-sm text-gray-600 mb-2">
-            Dirección
-          </label>
+          <label className="text-sm text-gray-600 mb-2">Dirección</label>
           <textarea
             name="direccion"
             value={form.direccion}
             onChange={handleChange}
-            className="px-4 py-3 rounded-xl border border-gray-300
-                       text-black min-h-[120px]
-                       focus:ring-2 focus:ring-[#b89c80]
-                       outline-none transition resize-none"
+            className="px-4 py-3 rounded-xl border border-gray-300 text-black min-h-[120px]"
           />
         </div>
 
@@ -132,18 +180,14 @@ export default function EditarPersonalPage() {
 
           <button
             onClick={() => router.push("/home/personal")}
-            className="px-6 py-3 rounded-xl
-                       border border-gray-300
-                       text-black hover:bg-gray-100 transition"
+            className="px-6 py-3 border border-gray-300 text-black rounded-xl"
           >
             Cancelar
           </button>
 
           <button
-            onClick={() => router.push("/home/personal")}
-            className="px-6 py-3 rounded-xl
-                       bg-[#b89c80] text-black font-semibold
-                       hover:bg-[#a38366] transition"
+            onClick={guardar}
+            className="px-6 py-3 bg-[#b89c80] text-black font-semibold rounded-xl"
           >
             Guardar cambios
           </button>

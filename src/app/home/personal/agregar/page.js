@@ -1,17 +1,66 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function AgregarPersonal() {
 
   const router = useRouter()
+
+  const [form, setForm] = useState({
+    nombre: "",
+    email: "",
+    telefono: "",
+    direccion: "",
+    id_rol: "",
+    activo: true
+  })
+
+  const [errorMsg, setErrorMsg] = useState("")
+
+  const handleChange = (campo, valor) => {
+    setForm({ ...form, [campo]: valor })
+  }
+
+  const guardar = async () => {
+
+    setErrorMsg("")
+
+    if (!form.nombre || !form.telefono || !form.id_rol) {
+      setErrorMsg("⚠️ Completa los campos obligatorios")
+      return
+    }
+
+    const payload = {
+      ...form,
+      id_rol: Number(form.id_rol)
+    }
+
+    console.log("ENVIANDO:", payload)
+
+    const { data, error } = await supabase
+      .from("perfiles")
+      .insert([payload])
+
+    console.log("DATA:", data)
+    console.log("ERROR:", error)
+
+    if (error) {
+      setErrorMsg("❌ " + error.message)
+      return
+    }
+
+    alert("✅ Personal agregado")
+    router.push("/home/personal")
+  }
 
   return (
     <div className="w-full space-y-8">
 
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-semibold text-black">
+        <h1 className="text-3xl font-semibold text-black">  
           Agregar personal
         </h1>
         <p className="text-gray-500 mt-1">
@@ -19,98 +68,77 @@ export default function AgregarPersonal() {
         </p>
       </div>
 
+      {/* ERROR */}
+      {errorMsg && (
+        <div className="bg-red-100 text-red-700 p-4 rounded-xl">
+          {errorMsg}
+        </div>
+      )}
+
       {/* CARD */}
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-3xl">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Nombre */}
-          <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Nombre
-            </label>
-            <input
-              placeholder="Nombre completo"
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
-            />
-          </div>
+          <input
+            placeholder="Nombre"
+            value={form.nombre}
+            onChange={(e) => handleChange("nombre", e.target.value)}
+            className="px-4 py-3 border rounded-xl text-black"
+          />
 
           {/* Email */}
-          <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Email
-            </label>
-            <input
-              placeholder="correo@email.com"
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
-            />
-          </div>
+          <input
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => handleChange("email", e.target.value)}
+            className="px-4 py-3 border rounded-xl text-black"
+          />
 
           {/* Teléfono */}
-          <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Teléfono
-            </label>
-            <input
-              placeholder="993 000 0000"
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
-            />
-          </div>
+          <input
+            placeholder="Teléfono"
+            value={form.telefono}
+            onChange={(e) => handleChange("telefono", e.target.value)}
+            className="px-4 py-3 border rounded-xl text-black"
+          />
 
           {/* Rol */}
-          <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-2">
-              Rol
-            </label>
-            <select
-              className="px-4 py-3 rounded-xl border border-gray-300
-                         text-black focus:ring-2 focus:ring-[#b89c80]
-                         outline-none transition"
-            >
-              <option>Seleccionar rol</option>
-              <option>Admin</option>
-              <option>Staff</option>
-              <option>Marketing</option>
-            </select>
-          </div>
+          <select
+            value={form.id_rol}
+            onChange={(e) => handleChange("id_rol", e.target.value)}
+            className="px-4 py-3 border rounded-xl text-black"
+          >
+            <option value="">Seleccionar rol</option>
+            <option value="1">Admin</option>
+            <option value="2">Staff</option>
+            <option value="3">Marketing</option>
+          </select>
 
         </div>
 
         {/* Dirección */}
-        <div className="flex flex-col mt-6">
-          <label className="text-sm text-gray-600 mb-2">
-            Dirección
-          </label>
-          <textarea
-            placeholder="Dirección completa..."
-            className="px-4 py-3 rounded-xl border border-gray-300
-                       text-black min-h-[120px]
-                       focus:ring-2 focus:ring-[#b89c80]
-                       outline-none transition"
-          />
-        </div>
+        <textarea
+          placeholder="Dirección"
+          value={form.direccion}
+          onChange={(e) => handleChange("direccion", e.target.value)}
+          className="mt-6 px-4 py-3 border rounded-xl text-black w-full"
+        />
 
         {/* BOTONES */}
         <div className="flex justify-end gap-4 mt-8">
 
           <button
             onClick={() => router.back()}
-            className="px-6 py-3 rounded-xl border border-gray-300
-                       text-black hover:bg-gray-100 transition"
+            className="px-6 py-3 border rounded-xl text-black"
           >
             Cancelar
           </button>
 
           <button
-            className="px-6 py-3 rounded-xl
-                       bg-[#b89c80] text-black font-semibold
-                       hover:bg-[#a38366] transition"
+            onClick={guardar}
+            className="px-6 py-3 bg-[#b89c80] rounded-xl text-black font-semibold"
           >
             Añadir
           </button>
