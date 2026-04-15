@@ -26,7 +26,7 @@ export default function PersonalPage() {
     setPersonal(data || [])
   }
 
-  // 🔍 FILTRO MEJORADO
+  // 
   const filtrado = useMemo(() => {
     return personal.filter(p =>
       (p.nombre || "")
@@ -35,14 +35,14 @@ export default function PersonalPage() {
     )
   }, [search, personal])
 
-  // 🎨 STATUS
+  // STATUS
   const getStatusStyle = (activo) => {
     return activo
       ? "bg-green-100 text-green-700"
       : "bg-red-100 text-red-700"
   }
 
-  // 🎭 ROL BONITO
+  //  ROL 
   const getRol = (id) => {
     if (id === 1) return "Admin"
     if (id === 2) return "Staff"
@@ -50,7 +50,7 @@ export default function PersonalPage() {
     return "Sin rol"
   }
 
-  // 🗑️ ELIMINAR (INSTANTÁNEO 🔥)
+  // eliminar
   const eliminar = async (id) => {
 
     const confirm = window.confirm("¿Eliminar usuario?")
@@ -66,7 +66,7 @@ export default function PersonalPage() {
       return
     }
 
-    // 💥 ACTUALIZAR UI SIN RECARGAR
+    
     setPersonal(prev => prev.filter(p => p.id !== id))
   }
 

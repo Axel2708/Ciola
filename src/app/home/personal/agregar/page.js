@@ -6,146 +6,179 @@ import { supabase } from "@/lib/supabaseClient"
 
 export default function AgregarPersonal() {
 
-  const router = useRouter()
+const router = useRouter()
 
-  const [form, setForm] = useState({
-    nombre: "",
-    email: "",
-    telefono: "",
-    direccion: "",
-    id_rol: "",
-    activo: true
-  })
+const [form, setForm] = useState({
+nombre: "",
+email: "",
+telefono: "",
+direccion: "",
+id_rol: "",
+activo: true
+})
 
-  const [errorMsg, setErrorMsg] = useState("")
+const [errorMsg, setErrorMsg] = useState("")
 
-  const handleChange = (campo, valor) => {
-    setForm({ ...form, [campo]: valor })
-  }
+const handleChange = (campo, valor) => {
+setForm({ ...form, [campo]: valor })
+}
 
-  const guardar = async () => {
+// VALIDACIÓN
+const validar = () => {
+let errores = []
 
-    setErrorMsg("")
 
-    if (!form.nombre || !form.telefono || !form.id_rol) {
-      setErrorMsg("⚠️ Completa los campos obligatorios")
-      return
-    }
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+if (!emailRegex.test(form.email)) {
+  errores.push("Email inválido")
+}
 
-    const payload = {
-      ...form,
-      id_rol: Number(form.id_rol)
-    }
+const telefonoRegex = /^[0-9]{10}$/
+if (!telefonoRegex.test(form.telefono)) {
+  errores.push("El teléfono debe tener 10 dígitos")
+}
 
-    console.log("ENVIANDO:", payload)
+if (errores.length > 0) {
+  setErrorMsg("⚠️ " + errores.join(" | "))
+  return false
+}
 
-    const { data, error } = await supabase
-      .from("perfiles")
-      .insert([payload])
+return true
 
-    console.log("DATA:", data)
-    console.log("ERROR:", error)
 
-    if (error) {
-      setErrorMsg("❌ " + error.message)
-      return
-    }
+}
 
-    alert("✅ Personal agregado")
-    router.push("/home/personal")
-  }
+const guardar = async () => {
 
-  return (
-    <div className="w-full space-y-8">
 
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-semibold text-black">  
-          Agregar personal
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Añade un nuevo miembro al equipo
-        </p>
-      </div>
+setErrorMsg("")
 
-      {/* ERROR */}
-      {errorMsg && (
-        <div className="bg-red-100 text-red-700 p-4 rounded-xl">
-          {errorMsg}
-        </div>
-      )}
+if (!form.nombre || !form.telefono || !form.id_rol) {
+  setErrorMsg("⚠️ Completa los campos obligatorios")
+  return
+}
 
-      {/* CARD */}
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-3xl">
+// VALIDACIÓN AGREGADA
+if (!validar()) return
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+const payload = {
+  ...form,
+  id_rol: Number(form.id_rol)
+}
 
-          {/* Nombre */}
-          <input
-            placeholder="Nombre"
-            value={form.nombre}
-            onChange={(e) => handleChange("nombre", e.target.value)}
-            className="px-4 py-3 border rounded-xl text-black"
-          />
+console.log("ENVIANDO:", payload)
 
-          {/* Email */}
-          <input
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-            className="px-4 py-3 border rounded-xl text-black"
-          />
+const { data, error } = await supabase
+  .from("perfiles")
+  .insert([payload])
 
-          {/* Teléfono */}
-          <input
-            placeholder="Teléfono"
-            value={form.telefono}
-            onChange={(e) => handleChange("telefono", e.target.value)}
-            className="px-4 py-3 border rounded-xl text-black"
-          />
+console.log("DATA:", data)
+console.log("ERROR:", error)
 
-          {/* Rol */}
-          <select
-            value={form.id_rol}
-            onChange={(e) => handleChange("id_rol", e.target.value)}
-            className="px-4 py-3 border rounded-xl text-black"
-          >
-            <option value="">Seleccionar rol</option>
-            <option value="1">Admin</option>
-            <option value="2">Staff</option>
-            <option value="3">Marketing</option>
-          </select>
+if (error) {
+  setErrorMsg("❌ " + error.message)
+  return
+}
 
-        </div>
+alert("✅ Personal agregado")
+router.push("/home/personal")
 
-        {/* Dirección */}
-        <textarea
-          placeholder="Dirección"
-          value={form.direccion}
-          onChange={(e) => handleChange("direccion", e.target.value)}
-          className="mt-6 px-4 py-3 border rounded-xl text-black w-full"
-        />
 
-        {/* BOTONES */}
-        <div className="flex justify-end gap-4 mt-8">
+}
 
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 border rounded-xl text-black"
-          >
-            Cancelar
-          </button>
+return ( <div className="w-full space-y-8">
 
-          <button
-            onClick={guardar}
-            className="px-6 py-3 bg-[#b89c80] rounded-xl text-black font-semibold"
-          >
-            Añadir
-          </button>
 
-        </div>
+  {/* HEADER */}
+  <div>
+    <h1 className="text-3xl font-semibold text-black">  
+      Agregar personal
+    </h1>
+    <p className="text-gray-500 mt-1">
+      Añade un nuevo miembro al equipo
+    </p>
+  </div>
 
-      </div>
+  {/* ERROR */}
+  {errorMsg && (
+    <div className="bg-red-100 text-red-700 p-4 rounded-xl">
+      {errorMsg}
     </div>
-  )
+  )}
+
+  {/* CARD */}
+  <div className="bg-white p-8 rounded-2xl shadow-lg max-w-3xl">
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      {/* Nombre */}
+      <input
+        placeholder="Nombre"
+        value={form.nombre}
+        onChange={(e) => handleChange("nombre", e.target.value)}
+        className="px-4 py-3 border rounded-xl text-black"
+      />
+
+      {/* Email */}
+      <input
+        placeholder="Email"
+        value={form.email}
+        onChange={(e) => handleChange("email", e.target.value)}
+        className="px-4 py-3 border rounded-xl text-black"
+      />
+
+      {/* Teléfono */}
+      <input
+        placeholder="Teléfono"
+        value={form.telefono}
+        onChange={(e) => handleChange("telefono", e.target.value)}
+        className="px-4 py-3 border rounded-xl text-black"
+      />
+
+      {/* Rol */}
+      <select
+        value={form.id_rol}
+        onChange={(e) => handleChange("id_rol", e.target.value)}
+        className="px-4 py-3 border rounded-xl text-black"
+      >
+        <option value="">Seleccionar rol</option>
+        <option value="1">Admin</option>
+        <option value="2">Staff</option>
+        <option value="3">Marketing</option>
+      </select>
+
+    </div>
+
+    {/* Dirección */}
+    <textarea
+      placeholder="Dirección"
+      value={form.direccion}
+      onChange={(e) => handleChange("direccion", e.target.value)}
+      className="mt-6 px-4 py-3 border rounded-xl text-black w-full"
+    />
+
+    {/* BOTONES */}
+    <div className="flex justify-end gap-4 mt-8">
+
+      <button
+        onClick={() => router.back()}
+        className="px-6 py-3 border rounded-xl text-black"
+      >
+        Cancelar
+      </button>
+
+      <button
+        onClick={guardar}
+        className="px-6 py-3 bg-[#b89c80] rounded-xl text-black font-semibold"
+      >
+        Añadir
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+)
 }
